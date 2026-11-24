@@ -70,7 +70,7 @@ async function googleProfile(env, code, verifier, attempt) {
   attempt.stage = 'google-token';
   const exchange = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    redirect: 'error',
+    redirect: 'manual',
     body: new URLSearchParams({
       code,
       code_verifier: verifier,
