@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Вхід · Поклик Ктулху</title>
+  <style>
+    :root { color-scheme: dark; font: 17px/1.5 system-ui, sans-serif; color: #f3eade; background: #18211b; }
+    body { margin: 0; display: grid; place-items: center; min-height: 100vh; }
+    main { box-sizing: border-box; width: min(100% - 2rem, 28rem); padding: 2rem; border: 1px solid #706750; border-radius: .8rem; background: #202922; }
+    h1 { margin: 0 0 1rem; font: 600 2rem/1.2 Georgia, serif; }
+    p { margin: 0 0 1rem; }
+    a, button { display: inline-block; border: 1px solid #ddc290; border-radius: .4rem; padding: .55rem .9rem; background: #ddc290; color: #18211b; font: inherit; text-decoration: none; cursor: pointer; }
+    [hidden] { display: none; }
+    :focus-visible { outline: 2px solid #f3eade; outline-offset: 3px; }
+  </style>
+  <script type="module" src="./session.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Поклик Ктулху</h1>
+    <p id="status" role="status">Перевіряємо вхід…</p>
+    <a id="google-login" href="/api/migration/auth/google" hidden>Увійти через Google</a>
+    <form id="logout" method="post" action="/api/migration/auth/logout" hidden>
+      <button type="submit">Вийти</button>
+    </form>
+  </main>
+</body>
+</html>
