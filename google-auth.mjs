@@ -92,7 +92,7 @@ async function googleProfile(env, code, verifier, attempt) {
 
   attempt.stage = 'google-profile';
   const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-    redirect: 'error',
+    redirect: 'manual',
     headers: { Authorization: 'Bearer ' + token },
   });
   if (!response.ok) {
