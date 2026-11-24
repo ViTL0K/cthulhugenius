@@ -59,7 +59,15 @@ async function startSignIn(env) {
   return redirect(url.href, [cookie(flowCookie, state + '.' + verifier, 600)]);
 }
 
-async function googleProfile(env, code, verifier) {
+function diagnostic(stage) {
+  return Response.json(
+    { error: 'Не вдалося завершити вхід.', stage },
+    { status: 503, headers: { ...noStore, 'Set-Cookie': cookie(flowCookie, '', 0) } },
+  );
+}
+
+async function googleProfile(env, code, verifier, attempt) {
+  attempt.stage = 'google-token';
   const exchange = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     redirect: 'error',
@@ -72,30 +80,41 @@ async function googleProfile(env, code, verifier) {
       grant_type: 'authorization_code',
     }),
   });
-  if (!exchange.ok) return null;
+  if (!exchange.ok) {
+    const result = await exchange.json().catch(() => null);
+    const knownErrors = ['invalid_client', 'invalid_grant', 'unauthorized_client', 'redirect_uri_mismatch'];
+    attempt.stage += '-' + exchange.status;
+    if (knownErrors.includes(result?.error)) attempt.stage += '-' + result.error;
+    return null;
+  }
   const token = (await exchange.json()).access_token;
   if (typeof token !== 'string' || !token) return null;
 
+  attempt.stage = 'google-profile';
   const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
     redirect: 'error',
     headers: { Authorization: 'Bearer ' + token },
   });
-  if (!response.ok) return null;
+  if (!response.ok) {
+    attempt.stage += '-' + response.status;
+    return null;
+  }
   const profile = await response.json();
   if (typeof profile.sub !== 'string' || !profile.sub ||
       typeof profile.email !== 'string' || !profile.email || profile.email_verified !== true) return null;
   return profile;
 }
 
-async function finishSignIn(request, env, url) {
+async function finishSignIn(request, env, url, attempt) {
   const [state, verifier] = getCookie(request, flowCookie)?.split('.') ?? [];
   const code = url.searchParams.get('code');
   if (!tokenPattern.test(state ?? '') || !tokenPattern.test(verifier ?? '') ||
       state !== url.searchParams.get('state')) return failedSignIn('expired');
   if (url.searchParams.has('error') || !code) return failedSignIn('cancelled');
 
-  const profile = await googleProfile(env, code, verifier);
-  if (!profile) return failedSignIn('google');
+  const profile = await googleProfile(env, code, verifier, attempt);
+  if (!profile) return diagnostic(attempt.stage);
+  attempt.stage = 'd1-account';
   const name = (typeof profile.name === 'string' ? profile.name.trim() : '').slice(0, 120);
   const user = await env.DB.prepare(
     'INSERT INTO site_users (id, google_subject, email, display_name) VALUES (?, ?, ?, ?) ' +
@@ -114,6 +133,7 @@ async function finishSignIn(request, env, url) {
   if (tokenPattern.test(previousToken ?? '')) {
     statements.push(env.DB.prepare('DELETE FROM site_sessions WHERE token_hash = ?').bind(await digest(previousToken)));
   }
+  attempt.stage = 'd1-session';
   await env.DB.batch(statements);
   return redirect(landingPath, [cookie(flowCookie, '', 0), cookie(sessionCookie, token, sessionSeconds)]);
 }
@@ -145,14 +165,15 @@ export async function handleGoogleAuth(request, env) {
     return json({ error: 'Sign-in is unavailable' }, 503);
   }
 
+  const attempt = { stage: 'callback' };
   try {
     if (request.method === 'GET' && url.pathname === '/api/migration/auth/google') return await startSignIn(env);
-    if (request.method === 'GET' && url.pathname === callbackPath) return await finishSignIn(request, env, url);
+    if (request.method === 'GET' && url.pathname === callbackPath) return await finishSignIn(request, env, url, attempt);
     if (request.method === 'GET' && url.pathname === '/api/migration/auth/session') return await currentSession(request, env.DB);
     if (request.method === 'POST' && url.pathname === '/api/migration/auth/logout') return await signOut(request, env.DB, url.origin);
     return json({ error: 'Not found' }, 404);
   } catch {
-    if (url.pathname === callbackPath) return failedSignIn('unavailable');
+    if (url.pathname === callbackPath) return diagnostic(attempt.stage);
     return json({ error: 'Sign-in is unavailable' }, 503);
   }
 }
