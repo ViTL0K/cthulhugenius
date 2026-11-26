@@ -10,3 +10,6 @@ body[data-portal-font] :is(h1,h2,h3,.brand-mini strong,.brand,.room-home strong,
 body[data-portal-font=epoch] :is(h1,h2,h3,.brand-mini strong,.room-home strong,.library-card-title){text-transform:uppercase;letter-spacing:.025em}
 body[data-portal-font]:not([data-portal-font=classic]):not([data-portal-font=epoch]) :is(button,.btn,input,textarea,select,.tool-btn,.chat-log,.message,.portal-card p,.field label,.person){font-family:var(--portal-body-font)}
 .portal-font-control{display:flex;align-items:center;gap:12px;justify-content:space-between;margin:12px 0}.portal-font-control select{background:#142018;color:#eee8d9;border:1px solid #61714b;border-radius:6px;padding:8px;max-width:65%;font:14px system-ui,sans-serif}.portal-font-control span{font:14px system-ui,sans-serif}
+
+body[data-portal-font=epoch]{--portal-body-font:PortalEpoch,Georgia,serif;--portal-heading-font:var(--portal-body-font)}
+body[data-portal-font]:not([data-portal-font=classic]),body[data-portal-font]:not([data-portal-font=classic]) *{font-family:var(--portal-body-font)!important}

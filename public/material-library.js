@@ -23,13 +23,13 @@
    if(!data){viewport.append(make('p','Завантажуємо матеріали…','library-empty'));return;}
    if(detail){renderDetail(viewport);return;}
    if(parent){const back=button('Назад',()=>{const crumbs=data.crumbs||[];go(crumbs.length>1?crumbs.at(-2).id:null);});back.classList.add('library-back');viewport.append(back);if(data.parent?.body)viewport.append(markdown(data.parent.body));if(data.parent?.image){const image=make('img',undefined,'library-detail-image');image.src=data.parent.image;image.alt=data.parent.title;viewport.append(image);}}
-   if(managing&&role==='keeper')viewport.append(make('p','Змінюй назву, обкладинку, вміст і доступ. Кнопки «Раніше» та «Пізніше» змінюють порядок у поточній вкладці.','library-help'));
+
    const grid=make('div',undefined,'library-grid');viewport.append(grid);
    if(!data.cards.length){const empty=make('div',undefined,'library-empty');empty.append(make('h3',role==='keeper'?'Додай першу вкладку':'Ведучий ще не відкрив матеріали'),make('p',role==='keeper'?'Наприклад: Локації, Персонажі або Зачіпки. Усередині можна створювати нові вкладки та картки.':'Тут з’являться вкладки й картки, до яких тобі надано доступ.'));
     if(role==='keeper'){empty.append(button('Додати вкладку',()=>edit(null),'btn primary'));if(!parent&&data.legacyAvailable)empty.append(button('Перенести раніше додані матеріали',e=>action(e.currentTarget,async()=>{const result=await api('/import-legacy',{method:'POST',body:'{}'});await refresh(true);status(result.imported?'Матеріали перенесено в приховану вкладку. Налаштуй доступ, коли будеш готовий.':'Старих матеріалів для перенесення немає.');})));}grid.append(empty);
    }
    for(const card of data.cards){const article=make('article',undefined,'library-tile');const open=button('',()=>openCard(card),'library-card');open.append(cover(card),make('span',card.title,'library-card-title'));open.setAttribute('aria-label',(card.kind==='category'?'Відкрити вкладку: ':'Відкрити картку: ')+card.title);article.append(open);
-    if(role==='keeper'){const badge=make('span',card.audience==='hidden'?'◉ Приховано':card.audience==='selected'?'◈ Обраним гравцям':'◎ Усім гравцям','library-access '+card.audience);article.append(badge);
+    if(role==='keeper'){const badge=button(card.audience==='hidden'?'◉ Приховано':card.audience==='selected'?'◈ Обраним гравцям':'◎ Усім гравцям',()=>quickAccess(card), 'library-access '+card.audience);badge.setAttribute('aria-label','Доступ: '+card.title);badge.setAttribute('aria-haspopup','dialog');article.append(badge);
      if(managing){const controls=make('div',undefined,'library-tile-tools');controls.append(button('Редагувати',()=>edit(card.id)),button('Раніше',e=>action(e.currentTarget,()=>reorder(card.id,-1))),button('Пізніше',e=>action(e.currentTarget,()=>reorder(card.id,1))),button('Видалити',e=>action(e.currentTarget,()=>removeCard(card)),'btn danger'));article.append(controls);}}
     grid.append(article);
    }
@@ -51,6 +51,29 @@
   async function openCard(card){if(card.kind==='category')return go(card.id);const token=generation;try{const result=await api('/cards/'+card.id);if(token!==generation)return;detail=result.card;render();}catch(error){onError(error.message);await refresh(true);}}
   async function reorder(id,direction){await api('/reorder',{method:'POST',body:JSON.stringify({parent_id:parent,id,direction})});await refresh(true);}
   async function removeCard(card){if(!confirm('Видалити «'+card.title+'»'+(card.kind==='category'?' разом з усіма дочірніми вкладками й картками':'')+'?'))return;await api('/cards/'+card.id,{method:'DELETE',body:JSON.stringify({revision:card.revision})});if(detail?.id===card.id)detail=null;await refresh(true);}
+  async function quickAccess(card){
+   if(role!=='keeper')return;
+   const scope=room,token=generation;let current;
+   try{current=(await api('/cards/'+card.id)).card;}catch(error){onError(error.message);return;}
+   if(scope!==room||token!==generation)return;
+   const popup=make('dialog',undefined,'library-access-popup'),form=make('form'),head=make('div',undefined,'library-editor-head');
+   popup.setAttribute('aria-label','Доступ до матеріалу');head.append(make('h3',current.title),button('×',()=>popup.close(),'icon-btn'));form.append(head);
+   const picks=make('fieldset',undefined,'library-player-picks');picks.append(make('legend','Гравці кімнати'));
+   for(const player of data?.players||[]){const label=make('label'),check=make('input');check.type='checkbox';check.value=player.user_id;check.checked=current.audience==='all'||(current.targets||[]).includes(player.user_id);label.append(check,document.createTextNode(player.display_name));picks.append(label);}
+   const message=make('p','','library-editor-status');message.setAttribute('role','status');
+   async function save(audience,targets=[]){if(scope!==room||token!==generation){popup.close();return;}const controls=[...form.querySelectorAll('button')];controls.forEach(b=>b.disabled=true);try{await api('/cards/'+card.id,{method:'PUT',body:JSON.stringify({title:current.title,revision:current.revision,audience,targets})});popup.close();await refresh(true);}catch(error){message.textContent=error.message;}finally{controls.forEach(b=>b.disabled=false);}}
+   const actions=make('div',undefined,'library-access-actions');actions.append(button('Відкрити всім',()=>save('all'),'btn primary'),button('Приховати від усіх',()=>save('hidden')));
+   const selected=make('button','Зберегти вибір','btn');selected.type='submit';selected.disabled=!data?.players?.length;
+   form.append(actions,picks,message,selected);form.addEventListener('submit',e=>{e.preventDefault();const targets=[...picks.querySelectorAll('input:checked')].map(c=>c.value);void save(targets.length?'selected':'hidden',targets);});
+   popup.append(form);document.body.append(popup);dialog=popup;popup.addEventListener('close',()=>popup.remove());popup.showModal();
+  }
+  let browserDialog=null;
+  function showLibrary(){
+   if(browserDialog?.open){void go(null);return;}
+   browserDialog=make('dialog',undefined,'library-browser');browserDialog.setAttribute('aria-label','Матеріали сесії');
+   const top=make('div',undefined,'library-browser-head');top.append(make('h2','Матеріали сесії'),button('Закрити',()=>browserDialog.close()));
+   browserDialog.append(top,root);document.body.append(browserDialog);browserDialog.addEventListener('close',()=>{mount.append(root);browserDialog.remove();browserDialog=null;});browserDialog.showModal();void go(null);
+  }
   async function edit(id,prefill={}){if(role!=='keeper')return;let loaded;try{if(id)loaded=(await api('/cards/'+id)).card;}catch(error){onError(error.message);return;}let card=id?loaded:{kind:'category',parent_id:parent,title:'',body:'',audience:'hidden',targets:[],cover_source:'',cover_thumb:'',crop:{zoom:1,x:.5,y:.5},image:'',...prefill};
    const editingRoom=room,editingGeneration=generation;if(dialog){dialog.close();dialog.remove();}
    let dirty=false,editor;const closeEditor=()=>{if(!dirty||confirm('Закрити без збереження змін?'))editor.close();};
@@ -79,16 +102,16 @@
     try{const targets=[...players.querySelectorAll('input:checked')].map(c=>c.value);if(audience.value==='selected'&&!targets.length)throw Error('Обери хоча б одного гравця.');if(detailImage.length>950000)detailImage=await resized(detailImage,1800,900000);
      const payload={kind:kind.value,title:title.value,body:body.value,parent_id:card.parent_id??parent,audience:audience.value,targets,cover_source:coverSource,cover_thumb:coverSource?canvas.toDataURL('image/webp',.8):'',crop,image:detailImage,file_path:filePath,revision:card.revision};
      if(payload.cover_thumb.length>110000){const thumb=document.createElement('canvas');thumb.width=240;thumb.height=320;thumb.getContext('2d').drawImage(canvas,0,0,240,320);payload.cover_thumb=thumb.toDataURL('image/webp',.7);}
-     const result=await api(id?'/cards/'+id:'',{method:id?'PUT':'POST',body:JSON.stringify(payload)});if(detail?.id===id)detail=result.card;dirty=false;editor.close();await refresh(true);status('Зміни збережено. Доступні гравцям матеріали синхронізуються автоматично.');
+     const result=await api(id?'/cards/'+id:'',{method:id?'PUT':'POST',body:JSON.stringify(payload)});if(detail?.id===id)detail=result.card;dirty=false;editor.close();await refresh(true);status('');
     }catch(error){message.textContent=error.message;}finally{save.disabled=false;}
    });
   }
   const timer=setInterval(()=>{if(room&&isActive()&&!document.hidden&&!dialog?.open)void refresh();},3500);
   return {
    activate(scope){if(scope.gameId===room&&scope.userId===user&&scope.role===role)return;room=scope.gameId;user=scope.userId;role=scope.role;parent=null;page=0;version='';data=null;detail=null;generation++;busy=false;render();void refresh(true);},
-   show(){detail=null;managing=false;void go(null);},
+   show(){showLibrary();},
    async importAsset(asset){if(role!=='keeper')return;const prefill={kind:'entry',title:asset.title||asset.name||'Матеріал',body:asset.note||'',file_path:asset.sourceFilePath||''};if(asset.type?.startsWith('image/')&&asset.url?.startsWith('data:image/')){prefill.image=await resized(asset.url,1800,900000);prefill.cover_source=await resized(asset.url,1200,280000);}await edit(null,prefill);},
-   dispose(){clearInterval(timer);dialog?.remove();root.remove();}
+   dispose(){clearInterval(timer);dialog?.remove();browserDialog?.remove();root.remove();}
   };
  };
 })();

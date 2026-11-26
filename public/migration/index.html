@@ -290,7 +290,7 @@ body:has(#roomView.active){overflow:hidden}
 @media(max-width:599px){.material-thumb{grid-row:auto}.material-buttons{grid-column:1/-1}.material-row .btn{min-height:38px}}
 </style>
 <link rel="stylesheet" href="/portal-rules.css?v=51">
-<link rel="stylesheet" href="/portal-appearance.css?v=87">
+
 <link rel="stylesheet" href="/locale.css?v=78">
 <script src="/locale.js"></script>
 <script src="/sheet-print-labels.js?v=78"></script>
@@ -305,7 +305,8 @@ body:has(#roomView.active){overflow:hidden}
 </style>
 <link rel="stylesheet" href="/migration-restored.css?v=95">
 <link rel="icon" href="/favicon.ico?v=97" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=97"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=97">
-<link rel="stylesheet" href="/portal-fonts.css?v=97"><link rel="stylesheet" href="/material-library.css?v=97.1"><script defer src="/portal-fonts.js?v=97"></script>
+<link rel="stylesheet" href="/portal-fonts.css?v=98"><link rel="stylesheet" href="/material-library.css?v=98"><script defer src="/portal-fonts.js?v=98"></script>
+<link rel="stylesheet" href="/portal-appearance.css?v=98"><script defer src="/portal-appearance.js?v=98"></script>
 </head>
 <body>
 <main class="app">
@@ -360,7 +361,7 @@ body:has(#roomView.active){overflow:hidden}
   <section id="roomView" class="view">
     <div class="room"><button type="button" class="panel-toggle panel-toggle-right" data-panel-toggle="right" aria-label="Згорнути інструменти" aria-expanded="true">›</button>
       <header class="room-head"><div class="room-title"><button type="button" data-action="portal" class="room-home" title="На головну порталу" data-ui-title="На головну порталу"><span class="brand-mark home-mark"><img id="roomCover" alt="Обкладинка пригоди" hidden><span class="cover-fallback" id="roomCoverFallback">☼</span></span><strong id="gameTitle">Північний архів</strong></button><button class="mono room-id" type="button" data-action="copy-room-code" title="Скопіювати код кімнати" data-ui-title="Скопіювати код кімнати"><span data-ui-text="КІМНАТА">КІМНАТА</span> <b id="roomCodeLabel">CTH-1926</b></button></div><div class="room-controls"><button class="icon-btn" data-action="settings" aria-label="Налаштування сайту" data-ui-aria-label="Налаштування сайту">⚙</button></div></header>
-      <aside class="roster" aria-label="Учасники" data-ui-aria-label="Учасники"><div class="roster-label"><span data-ui-text="Ведучий">Ведучий</span></div><div class="person"><button class="avatar" type="button">В</button><span id="keeperName">Віталій<span class="role">Ведучий</span></span><i class="status" id="keeperStatus" title="Офлайн"></i></div><div class="roster-label"><span data-ui-text="Гравці">Гравці</span> · <span id="playerCount">3</span> <button class="chat-target keeper-only" data-action="add-player"><span data-ui-text="Код для гравців">Код для гравців</span></button></div><div id="playersList"></div><section class="keeper-roll-history" id="keeperRollPanel"><div class="roster-label"><span data-ui-text="Мої приховані кидки">Мої приховані кидки</span></div><div id="keeperRollLog" class="hidden-roll-log"><span class="muted small">Тут з’являтиметься історія приватних кидків.</span></div></section></aside>
+      <aside class="roster" aria-label="Учасники" data-ui-aria-label="Учасники"><div class="roster-label"><span data-ui-text="Ведучий">Ведучий</span></div><div class="person"><button class="avatar" type="button">В</button><span id="keeperName">Віталій<span class="role">Ведучий</span></span><i class="status" id="keeperStatus" title="Офлайн"></i></div><div class="roster-label"><span data-ui-text="Гравці">Гравці</span> · <span id="playerCount">3</span> <button class="chat-target keeper-only" data-action="add-player"><span data-ui-text="Код для гравців">Код для гравців</span></button></div><div id="playersList"></div><section class="keeper-roll-history" id="keeperRollPanel"><div id="keeperRollLog" class="hidden-roll-log" aria-label="Приховані кидки"></div></section></aside>
       <section class="stage library-stage" aria-label="Матеріали гри"><div id="structuredMaterialsMount" style="height:100%"></div><div hidden id="legacyStage">
         <div class="stage-top"><div class="stage-controls"><button data-action="zoom-out" title="Віддалити">−</button><button data-action="zoom-in" title="Наблизити">+</button><button data-action="fit-map" title="За розміром">□</button><label class="upload-label" for="uploadInput" title="Додати картку на сцену">＋</label></div></div>
         <div class="scene-grid"></div><div class="stage-empty-hint" id="stageHint">Спільна дошка гри<br>Додай карту або картки матеріалів</div><div id="sceneItems" class="scene-items"></div><div id="sceneMarkers" class="scene-markers" aria-live="polite"></div>
@@ -388,7 +389,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
 </script>
 <script src="/migration-client.js?v=95"></script>
 <script src="/portal-rules.js?v=52"></script>
-<script src="/material-library.js?v=97"></script>
+<script src="/material-library.js?v=98"></script>
 <script>
 (()=>{
   const supabase=window.supabase;
@@ -511,7 +512,6 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     "Посилання YouTube або Spotify": ["Ссылка YouTube или Spotify", "YouTube or Spotify link"],
     "Назва (необов’язково)": ["Название (необязательно)", "Title (optional)"],
     "Вибери учасника, якому хочеш написати.": ["Выберите участника, которому хотите написать.", "Choose a participant to message."],
-    "Тут з’являтиметься історія приватних кидків.": ["Здесь появятся личные броски.", "Private rolls appear here."],
     "Результат показано всім.": ["Результат показан всем.", "Result shared with everyone."],
     "Кидок надіслано ведучому.": ["Бросок отправлен ведущему.", "Roll sent to the Keeper."],
     "Кидок залишився приватним.": ["Бросок остался личным.", "Roll kept private."],
@@ -690,7 +690,6 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     "Кидок ведучому": ["Бросок ведущему", "Roll for the Keeper"],
     "Показати всім": ["Показать всем", "Show everyone"],
     "Кинути": ["Бросить", "Roll"],
-    "Мої приховані кидки": ["Мои скрытые броски", "My hidden rolls"],
     "Підключення": ["Подключение", "Connection"],
     "Онлайн · спільна кімната": ["Онлайн · общая комната", "Online · shared room"],
     "Локальний режим": ["Локальный режим", "Local mode"],
@@ -1916,7 +1915,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
       const name=record.sheet?.Investigators_Name||record.sheet?.char_name||'Особистий лист';
       return `<div class="game-row"><div><strong>${esc(person.display_name)}</strong><p class="small muted" style="margin:3px 0 0">Власний лист: ${esc(name)}</p></div><button class="btn" data-action="open-member-sheet" data-owner-id="${esc(person.user_id)}" data-owner-name="${esc(person.display_name)}">Переглянути власний лист</button></div>`
     }).filter(Boolean).join('');
-    openModal('Листи персонажів гравців',`<p class="muted small">Створи лист заздалегідь, заповни його, а після входу гравця признач йому доступ. Гравці також можуть мати власний лист.</p><button class="btn primary" data-action="create-prepared-sheet">＋ Створити порожній лист</button><h3 class="section-title">Підготовлені листи · ${preparedSheets.length}</h3><div class="game-list">${preparedRows||'<p class="muted">Підготовлених листів ще немає. Їх можна створити до входу гравців.</p>'}</div><h3 class="section-title">Власні листи гравців</h3><div class="game-list">${personalRows||'<p class="muted">Гравці ще не створили власних листів.</p>'}</div><p class="small muted">${people.length?`У кімнаті зараз ${people.length} гравців.`:'Коли гравці приєднаються до кімнати, вони з’являться тут для призначення.'}</p>`)
+    openModal('Листи персонажів гравців',`<button class="btn primary" data-action="create-prepared-sheet">＋ Створити порожній лист</button><h3 class="section-title">Підготовлені листи · ${preparedSheets.length}</h3><div class="game-list">${preparedRows||'<p class="muted">Підготовлених листів ще немає. Їх можна створити до входу гравців.</p>'}</div><h3 class="section-title">Власні листи гравців</h3><div class="game-list">${personalRows||'<p class="muted">Гравці ще не створили власних листів.</p>'}</div><p class="small muted">${people.length?`У кімнаті зараз ${people.length} гравців.`:''}</p>`)
   }
   async function createPreparedSheet(){
     if(!state.gameId||(!['keeper','admin'].includes(state.role)&&state.accountRole!=='admin'))return;
@@ -2917,7 +2916,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     }
   }
   function renderRecipient(){const select=$('#privateRecipient');if(!select)return;if(state.cloud){const options=state.members.filter(m=>m.user_id!==state.userId);const storageKey='cth-recipient:'+state.gameId+':'+state.userId;const wanted=localStorage.getItem(storageKey)||options[0]?.user_id;select.innerHTML=options.map(m=>`<option value="${esc(m.user_id)}">${esc(m.display_name)}</option>`).join('');if(options.some(m=>m.user_id===wanted))select.value=wanted;const syncThread=()=>{const key=storageKey+':'+select.value;if(key!==privateView){privateView=key;renderPrivateThread();restoreChatDrafts()}};select.onchange=()=>{safeStore(storageKey,select.value);syncThread()};syncThread();return}const names=[...new Set(['Віталій',...demoNames()])].filter(n=>n!==state.name);const wanted=localStorage.getItem('cth-recipient')||names[0];select.innerHTML=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');select.value=names.includes(wanted)?wanted:names[0];select.onchange=()=>safeStore('cth-recipient',select.value)}
-  function renderRollHistory(){const log=$('#keeperRollLog');if(!log)return;log.innerHTML=state.rolls.length?state.rolls.map(r=>`<div class="message"><strong>${esc(r.from)} · ${esc(uiText(r.visibility))}</strong>${chatTime(r.created_at)}<br>${esc(r.roll?locale.formatRoll(r.roll,interfaceLanguage):r.text)}</div>`).join(''):`<span class="muted small">${uiText('Тут з’являтиметься історія приватних кидків.')}</span>`;log.scrollTop=log.scrollHeight}
+  function renderRollHistory(){const log=$('#keeperRollLog');if(!log)return;log.innerHTML=state.rolls.length?state.rolls.map(r=>`<div class="message"><strong>${esc(r.from)} · ${esc(uiText(r.visibility))}</strong>${chatTime(r.created_at)}<br>${esc(r.roll?locale.formatRoll(r.roll,interfaceLanguage):r.text)}</div>`).join(''):'';log.scrollTop=log.scrollHeight}
   function mapZoomKey(){return `cth-map-zoom:${state.userId||'guest'}:${state.gameId||'local'}:${state.activeScene}`}
   function getMapZoom(){const value=Number(localStorage.getItem(mapZoomKey())||1);return Math.max(.7,Math.min(2.2,Number.isFinite(value)?value:1))}
   function setMapZoom(value){const zoom=Math.max(.7,Math.min(2.2,value));safeStore(mapZoomKey(),String(zoom));state.mapZoom=zoom}
