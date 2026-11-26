@@ -58,7 +58,7 @@
   }
   async function go(id){generation++;busy=false;remember();parent=id;detail=null;category=null;managing=false;page=0;version='';restore();await refresh(true);}
   async function openCard(card){if(card.kind==='category')return go(card.id);const token=++generation;busy=false;try{const result=await api('/cards/'+card.id);if(token!==generation)return;detail=result.card;remember();render();}catch(error){onError(error.message);await refresh(true);}}
-  async function moveCard(card,anchor){await api('/move',{method:'POST',body:JSON.stringify({parent_id:parent,id:card.id,revision:card.revision,before_id:anchor?.id||null,anchor_revision:anchor?.revision})});await refresh(true);}
+  async function moveCard(card,anchor){if(anchor?.id===card.id)return;await api('/move',{method:'POST',body:JSON.stringify({parent_id:parent,id:card.id,revision:card.revision,before_id:anchor?.id||null,anchor_revision:anchor?.revision})});await refresh(true);}
   async function removeCard(card){if(!confirm('Видалити «'+card.title+'»'+(card.kind==='category'?' разом з усіма дочірніми вкладками й картками':'')+'?'))return;await api('/cards/'+card.id,{method:'DELETE',body:JSON.stringify({revision:card.revision})});if(detail?.id===card.id)detail=null;await refresh(true);}
   async function quickAccess(card){
    if(role!=='keeper')return;
