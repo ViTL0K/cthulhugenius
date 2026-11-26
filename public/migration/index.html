@@ -305,8 +305,9 @@ body:has(#roomView.active){overflow:hidden}
 </style>
 <link rel="stylesheet" href="/migration-restored.css?v=95">
 <link rel="icon" href="/favicon.ico?v=97" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=97"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=97">
-<link rel="stylesheet" href="/portal-fonts.css?v=98"><link rel="stylesheet" href="/material-library.css?v=98"><script defer src="/portal-fonts.js?v=98"></script>
-<link rel="stylesheet" href="/portal-appearance.css?v=98"><script defer src="/portal-appearance.js?v=98"></script>
+<link rel="stylesheet" href="/portal-fonts.css?v=99"><link rel="stylesheet" href="/material-library.css?v=99"><script defer src="/portal-fonts.js?v=99"></script>
+<link rel="stylesheet" href="/portal-appearance.css?v=99"><script defer src="/portal-appearance.js?v=99"></script>
+<link rel="stylesheet" href="/portal-tour.css?v=99"><script defer src="/portal-tour.js?v=99"></script>
 </head>
 <body>
 <main class="app">
@@ -389,7 +390,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
 </script>
 <script src="/migration-client.js?v=95"></script>
 <script src="/portal-rules.js?v=52"></script>
-<script src="/material-library.js?v=98"></script>
+<script src="/material-library.js?v=99"></script>
 <script>
 (()=>{
   const supabase=window.supabase;
@@ -767,7 +768,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   }
   const portalRules=createPortalRules({modal,openModal,supabase,escape:esc});
   function activeRoomKey(){return 'cth-active-room:'+state.userId}
-  function show(view){$$('.view').forEach(v=>v.classList.remove('active'));$('#'+view+'View').classList.add('active');window.scrollTo(0,0);if(view==='room'){if(state.userId&&state.gameId)sessionStorage.setItem(activeRoomKey(),state.gameId);restoreChatDrafts();scrollChats();resumeRoom()}if(state.roomSub)void updatePresence(true)}
+  function show(view){$$('.view').forEach(v=>v.classList.remove('active'));$('#'+view+'View').classList.add('active');window.scrollTo(0,0);if(view==='room'){$('#roomView').dataset.tourUser=state.userId||'';$('#roomView').dataset.tourRole=state.role;window.portalTour?.enter({userId:state.userId,role:state.role});if(state.userId&&state.gameId)sessionStorage.setItem(activeRoomKey(),state.gameId);restoreChatDrafts();scrollChats();resumeRoom()}if(state.roomSub)void updatePresence(true)}
   function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
   function applyTheme(value){
     const selector=$('#entryThemeSelect');
@@ -1456,7 +1457,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     const rolls=rollHistory.status==='fulfilled'?rollHistory.value:[];
     if(messageHistory.status==='rejected'||rollHistory.status==='rejected')toast('Частину історії не завантажено. Кімната повторить спробу.');
     state.messages=messages;
-    state.rolls=(rolls||[]).filter(r=>r.visibility!=='all').map(r=>({from:state.members.find(m=>m.user_id===r.actor_id)?.display_name||'Гравець',visibility:r.visibility==='keeper'?'Ведучому':'Собі',roll:r.roll,created_at:r.created_at}));
+    state.rolls=(rolls||[]).sort(chatOrder).filter(r=>r.visibility!=='all').map(r=>({from:state.members.find(m=>m.user_id===r.actor_id)?.display_name||'Гравець',visibility:r.visibility==='keeper'?'Ведучому':'Собі',roll:r.roll,created_at:r.created_at}));
     $('#publicLog').innerHTML='';$('#privateLog').innerHTML='';displayedPublicRolls.clear();[...messages.filter(row=>row.visibility==='all').map(row=>({...row,isMessage:true})),...rolls.filter(row=>row.visibility==='all')].sort(chatOrder).forEach(row=>row.isMessage?renderCloudMessage(row):renderPublicRoll(row,false));scrollChats();
     void refreshDirect(gameId).catch(error=>toast(error.message));renderRollHistory();$('#noteCount').textContent=state.notes.length;
     state.remoteRefresh=true;state.activeScene=Math.max(0,state.scenes.findIndex(scene=>scene.active===true));if(!state.scenes.some(scene=>scene.active===true))state.activeScene=0;renderScene();privateView='';renderRecipient();state.remoteRefresh=false;
@@ -2059,7 +2060,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
       if(wrap||f.multiline)return `<textarea class="sheet-pdf-field sheet-pdf-text${wrap?' sheet-wrapping-field':''}" ${attrs} rows="${wrap?2:ruledRows||Math.max(2,Math.round(f.h*.9))}">${val}</textarea>`;
       return `<input class="sheet-pdf-field sheet-pdf-text${f.placeholder?' sheet-combat-printed':''}" ${attrs} type="text" value="${val}" ${combatSkillSources[f.name]?'inputmode="numeric"':''}>`;
     }).join('')}${page===1?`<span class="sheet-skill-base">(${sheetSkill('Skill_11')[1]}%)</span>`+sheetRollButtons(fields):''}</div></section>`).join('');
-    openModal((isOwnSheet?'Лист дослідника · '+(sheetMemberName||state.name):'Лист · '+(sheetMemberName||'Підготовлений персонаж'))+' · 1920-ті',`<div class="sheet-pdf-toolbar"><div class="sheet-pdf-actions"><select id="sheetLanguage" aria-label="Мова листа"><option value="uk">УКР</option><option value="ru">РУС</option><option value="en">ENG</option></select><button class="btn" type="button" data-sheet-zoom="-1" aria-label="Зменшити лист">−</button><button class="btn" type="button" data-sheet-zoom="1" aria-label="Збільшити лист">+</button>${canUseRoomNotes()?'<button class="btn" type="button" data-action="notes">Нотатки · '+state.notes.length+'</button>':''}<button class="btn" type="button" id="sheetBackstory">Передісторія</button><button class="btn" type="button" id="sheetSettingsToggle" aria-expanded="false">Налаштування</button><button class="btn" type="button" data-action="manage-sheets">Керування листом</button><a class="btn" href="/character-sheet-original.pdf" target="_blank" rel="noopener">Відкрити PDF</a></div><span id="sheetRollStatus" class="sheet-save-status" role="status"></span><span id="sheetSaveStatus" class="sheet-save-status"></span></div><div class="sheet-pdf-scroll"><div class="sheet-pdf-pages">${pages}</div></div>`,null);
+    openModal((isOwnSheet?'Лист дослідника · '+(sheetMemberName||state.name):'Лист · '+(sheetMemberName||'Підготовлений персонаж'))+' · 1920-ті',`<div class="sheet-pdf-toolbar"><div class="sheet-pdf-actions"><select id="sheetLanguage" aria-label="Мова листа"><option value="uk">УКР</option><option value="ru">РУС</option><option value="en">ENG</option></select><button class="btn" type="button" data-sheet-zoom="-1" aria-label="Зменшити лист">−</button><button class="btn" type="button" data-sheet-zoom="1" aria-label="Збільшити лист">+</button>${canUseRoomNotes()?'<button class="btn" type="button" data-action="notes">Нотатки · '+state.notes.length+'</button>':''}<button class="btn" type="button" id="sheetBackstory">Передісторія</button><button class="btn" type="button" id="sheetSettingsToggle" aria-expanded="false">Налаштування</button><a class="btn" href="/character-sheet-original.pdf" target="_blank" rel="noopener">Відкрити PDF</a></div><div class="sheet-status-row"><span id="sheetSaveStatus" class="sheet-save-status"></span><span id="sheetRollStatus" class="sheet-save-status" role="status"></span></div></div><div class="sheet-pdf-scroll"><div class="sheet-pdf-pages">${pages}</div></div>`,null);
     modal.classList.add('sheet-modal');
     const body=$('#modalBody'), pageWrap=$('.sheet-pdf-pages');
     const layout=window.createLocalizedSheet(pageWrap);
@@ -2104,11 +2105,11 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
         }
       }
       const copy={
-        uk:['Передісторія','Налаштування','Керування листом','Відкрити оригінал PDF'],
-        ru:['Предыстория','Настройки','Управление листом','Открыть оригинал PDF'],
-        en:['Backstory','Settings','Manage sheet','Open original PDF']
+        uk:['Передісторія','Налаштування','Відкрити оригінал PDF'],
+        ru:['Предыстория','Настройки','Открыть оригинал PDF'],
+        en:['Backstory','Settings','Open original PDF']
       }[lang];
-      ['#sheetBackstory','#sheetSettingsToggle','[data-action="manage-sheets"]','.sheet-pdf-actions a']
+      ['#sheetBackstory','#sheetSettingsToggle','.sheet-pdf-actions a']
         .forEach((selector,i)=>body.querySelector(selector).textContent=copy[i]);
       const notes=body.querySelector('.sheet-pdf-actions [data-action="notes"]');
       if(notes)notes.textContent=locale.text('notes',lang)+' · '+state.notes.length;
@@ -2872,18 +2873,21 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   }
   function renderRoomRole(){$('.toolbox [data-action=notes]').hidden=!canUseRoomNotes();const room=$('#roomView');room.classList.toggle('room-player',state.role==='player');$('#keeperRollPanel').hidden=state.role!=='keeper';$('#mySheetTab').hidden=state.role!=='player'||!state.gameId||!state.userId;$('#uploadInput').disabled=state.role==='player';renderRoomNavigation();localizeRollMode();$('#rollModeLabel').firstChild.textContent=state.role==='keeper'?'Видимість':'Видимість';renderScene()}
   function scrollChats(){
-    requestAnimationFrame(()=>{for(const id of ['#publicLog','#privateLog']){const box=$(id);box.scrollTop=box.scrollHeight}});
+    const latest=()=>{for(const id of ['#publicLog','#privateLog']){const box=$(id);box.scrollTop=box.scrollHeight;}};
+    requestAnimationFrame(()=>{latest();requestAnimationFrame(latest);});
+    if(document.fonts?.ready)void document.fonts.ready.then(()=>{if($('#roomView').classList.contains('active'))latest();});
   }
   function renderPrivateThread(){
-    $('#privateLog').replaceChildren();
+    const box=$('#privateLog'),top=box.scrollTop,follow=box.scrollHeight-box.clientHeight-box.scrollTop<40;
+    box.replaceChildren();
     state.messages.filter(row=>row.visibility!=='all').sort(chatOrder).forEach(renderCloudMessage);
-    $('#privateLog').scrollTop=$('#privateLog').scrollHeight;
+    if(follow)box.scrollTop=box.scrollHeight;else box.scrollTop=top;
   }
   function chatOrder(a,b){return Date.parse(a.created_at)-Date.parse(b.created_at)||String(a.id).localeCompare(String(b.id))}
   async function roomHistory(table,gameId){
     const rows=[],signal=AbortSignal.timeout(12000);
     for(let offset=0;;offset+=500){
-      const {data,error}=await supabase.from(table).select('*').eq('game_id',gameId).order('created_at').order('id').range(offset,offset+499).abortSignal(signal);
+      const {data,error}=await supabase.from(table).select('*').eq('game_id',gameId).order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+499).abortSignal(signal);
       if(error)throw error;
       rows.push(...data);
       if(data.length<500)return rows;
@@ -3181,19 +3185,19 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   }
   function appendMsg(kind,text,author=state.name||'Гість',createdAt=new Date().toISOString()){
     const box=kind==='private'?$('#privateLog'):$('#publicLog');
-    const message=document.createElement('div');message.className='message';
+    const follow=box.scrollHeight-box.clientHeight-box.scrollTop<40;const message=document.createElement('div');message.className='message';
     message.innerHTML=`<strong>${esc(author)}</strong>${chatTime(createdAt)}<br>${esc(text)}`;
-    box.append(message);box.scrollTop=box.scrollHeight;
+    box.append(message);if(follow)box.scrollTop=box.scrollHeight;
   }
   function appendLocalizedRoll(kind,roll,author,createdAt){
-    appendMsg(kind,'',author,createdAt);
+    const prior=$(kind==='private'?'#privateLog':'#publicLog'),follow=prior.scrollHeight-prior.clientHeight-prior.scrollTop<40;appendMsg(kind,'',author,createdAt);
     const node=document.createElement('span');
     node.className='roll-message-text';
     node.textContent=locale.formatRoll(roll,interfaceLanguage);
     rollMessages.set(node,roll);
     const log=$(kind==='private'?'#privateLog':'#publicLog');
     log.lastElementChild.append(node);
-    log.scrollTop=log.scrollHeight;
+    if(follow)log.scrollTop=log.scrollHeight;
   }
   function renderCloudMessage(row){
     if(row.game_id&&row.game_id!==state.gameId)return;

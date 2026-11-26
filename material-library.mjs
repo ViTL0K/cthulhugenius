@@ -13,6 +13,8 @@ export async function ensureMaterialLibrary(db){
     sort_order INTEGER NOT NULL DEFAULT 0,revision INTEGER NOT NULL DEFAULT 1,legacy_key TEXT,
     created_by TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
     UNIQUE(game_id,legacy_key))`),
+  db.prepare('CREATE TABLE IF NOT EXISTS room_material_meta(card_id TEXT PRIMARY KEY REFERENCES room_material_cards(id) ON DELETE CASCADE,category TEXT NOT NULL DEFAULT \'\')'),
+  db.prepare('CREATE TABLE IF NOT EXISTS room_material_blocks(card_id TEXT NOT NULL REFERENCES room_material_cards(id) ON DELETE CASCADE,position INTEGER NOT NULL,data TEXT NOT NULL,PRIMARY KEY(card_id,position))'),
   db.prepare('CREATE INDEX IF NOT EXISTS room_material_parent ON room_material_cards(game_id,parent_id,sort_order)'),
   db.prepare('CREATE INDEX IF NOT EXISTS room_material_file ON room_material_cards(game_id,file_path)'),
   db.prepare('CREATE TABLE IF NOT EXISTS room_material_versions(game_id TEXT PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,revision INTEGER NOT NULL DEFAULT 0)')
@@ -54,7 +56,15 @@ async function validate(db,game,data,current,map){
  return {title,kind,parent_id:parent,body,cover_source:source,cover_thumb:thumb,crop:JSON.stringify(crop),image:detailImage,file_path:path,file_type:fileType,audience,targets:JSON.stringify(audience==='selected'?targets:[])};
 }
 const fields=['kind','title','body','cover_source','cover_thumb','crop','image','file_path','file_type','audience','targets'];
-async function getCard(db,game,id){return db.prepare('SELECT * FROM room_material_cards WHERE game_id=? AND id=?').bind(game,id).first();}
+async function getCard(db,game,id){const row=await db.prepare("SELECT c.*,COALESCE(m.category,'') AS category FROM room_material_cards c LEFT JOIN room_material_meta m ON m.card_id=c.id WHERE c.game_id=? AND c.id=?").bind(game,id).first();if(row){const rows=(await db.prepare('SELECT data FROM room_material_blocks WHERE card_id=? ORDER BY position').bind(id).all()).results;row.blocks=rows.map(r=>JSON.parse(r.data));}return row;}
+function contentChanges(db,id,revision,data){
+ const statements=[],guard='EXISTS(SELECT 1 FROM room_material_cards WHERE id=? AND revision=?)';
+ if(data.category!==undefined){if(typeof data.category!=='string'||data.category.trim().length>60)fail('Категорія має містити до 60 символів.');statements.push(db.prepare('INSERT INTO room_material_meta(card_id,category) SELECT ?,? WHERE '+guard+' ON CONFLICT(card_id) DO UPDATE SET category=excluded.category').bind(id,data.category.trim(),id,revision));}
+ if(data.blocks!==undefined){if(!Array.isArray(data.blocks)||data.blocks.length>200||JSON.stringify(data.blocks).length>16000000)fail('Вміст завеликий. Розділи його на кілька карток.');
+ const blocks=data.blocks.map(b=>{if(!b||!['text','image'].includes(b.type))fail('Невідомий тип блоку.');if(b.type==='text'){if(typeof b.text!=='string'||b.text.length>30000)fail('Текст блоку завеликий.');return {type:'text',text:b.text};}if(!['small','medium','large'].includes(b.size))fail('Перевір розмір фото.');const src=image(b.src,950000,'фото блоку');if(!src)fail('Додай фото до блоку.');return {type:'image',src,size:b.size};});
+ statements.push(db.prepare('DELETE FROM room_material_blocks WHERE card_id=? AND '+guard).bind(id,id,revision));for(const [i,b]of blocks.entries())statements.push(db.prepare('INSERT INTO room_material_blocks(card_id,position,data) SELECT ?,?,? WHERE '+guard).bind(id,i,JSON.stringify(b),id,revision));
+ }return statements;
+}
 export async function libraryFileAccess(db,game,path,userId){
  await ensureMaterialLibrary(db);const rows=(await db.prepare('SELECT id,parent_id,audience,targets FROM room_material_cards WHERE game_id=? AND file_path=?').bind(game,path).all()).results;
  if(!rows.length)return null;const map=await ancestry(db,game);return rows.some(r=>mayReadMaterial(map,r,userId));
@@ -83,12 +93,22 @@ export async function handleMaterialLibrary(request,ctx,url){
   const rev=await db.prepare('SELECT revision FROM room_material_versions WHERE game_id=?').bind(game).first();const version=(rev?.revision||0)+':'+member.role;
   if(url.searchParams.get('known')===version)return json({unchanged:true,version});
   const page=Math.max(0,Math.min(10000,Number(url.searchParams.get('page'))||0));
-  const clauses=keeper?'':" AND (audience='all' OR (audience='selected' AND EXISTS(SELECT 1 FROM json_each(targets) WHERE value=?)))";
-  const sql='SELECT id,parent_id,kind,title,cover_thumb,audience,targets,sort_order,revision,updated_at FROM room_material_cards WHERE game_id=? AND parent_id IS ?'+clauses+' ORDER BY sort_order,id LIMIT 49 OFFSET ?';
-  const params=keeper?[game,parent,page*48]:[game,parent,ctx.user.id,page*48];const {results}=await db.prepare(sql).bind(...params).all();
+  let clauses=keeper?'':" AND (audience='all' OR (audience='selected' AND EXISTS(SELECT 1 FROM json_each(targets) WHERE value=?)))";
+  const category=url.searchParams.get('category');const categoryRows=(await db.prepare("SELECT DISTINCT COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'') AS category FROM room_material_cards WHERE game_id=? AND parent_id IS ?"+clauses).bind(...(keeper?[game,parent]:[game,parent,ctx.user.id])).all()).results;
+  if(category!==null)clauses+=" AND COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'')=?";
+  const sql="SELECT id,parent_id,kind,title,cover_thumb,audience,targets,sort_order,revision,updated_at,COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'') AS category FROM room_material_cards WHERE game_id=? AND parent_id IS ?"+clauses+' ORDER BY sort_order,id LIMIT 49 OFFSET ?';
+  const params=[game,parent,...(keeper?[]:[ctx.user.id]),...(category===null?[]:[category]),page*48];const {results}=await db.prepare(sql).bind(...params).all();
   const crumbs=[];let p=parentRow;while(p){crumbs.unshift({id:p.id,title:p.title});p=p.parent_id?map.get(p.parent_id):null;}
   const players=keeper?(await db.prepare("SELECT user_id,display_name FROM game_members WHERE game_id=? AND role='player' ORDER BY joined_at").bind(game).all()).results:[];
-  return json({version,canEdit:keeper,parent:clean(parentRow,keeper),crumbs,cards:results.slice(0,48).map(r=>clean(r,keeper)),page,hasMore:results.length>48,players,legacyAvailable:keeper&&map.size===0});
+  return json({version,canEdit:keeper,parent:clean(parentRow,keeper),crumbs,cards:results.slice(0,48).map(r=>clean(r,keeper)),page,hasMore:results.length>48,categories:categoryRows.map(r=>r.category).sort(),players,legacyAvailable:keeper&&map.size===0});
+ }
+ if(request.method==='POST'&&tail==='move'){
+  const data=await request.json(),parent=data.parent_id||null;const sorted=(await db.prepare('SELECT id,revision,sort_order FROM room_material_cards WHERE game_id=? AND parent_id IS ? ORDER BY sort_order,id').bind(game,parent).all()).results;
+  const moving=sorted.find(r=>r.id===data.id),anchor=data.before_id?sorted.find(r=>r.id===data.before_id):null;
+  if(!moving||data.before_id&&!anchor||data.id===data.before_id)fail('Некоректне переміщення.');if(moving.revision!==data.revision||anchor&&anchor.revision!==data.anchor_revision)fail('Порядок змінився. Онови вкладку.',409);
+  const reordered=sorted.filter(r=>r.id!==moving.id);reordered.splice(anchor?reordered.findIndex(r=>r.id===anchor.id):reordered.length,0,moving);
+  const stamp=new Date().toISOString(),updates=[];for(const [i,row]of reordered.entries())if(row.id!==moving.id)updates.push(db.prepare('UPDATE room_material_cards SET sort_order=?,revision=revision+1,updated_at=? WHERE id=? AND game_id=? AND EXISTS(SELECT 1 FROM room_material_cards WHERE id=? AND revision=?)').bind(i*10,stamp,row.id,game,moving.id,data.revision));
+  updates.push(db.prepare('UPDATE room_material_cards SET sort_order=?,revision=revision+1,updated_at=? WHERE id=? AND game_id=? AND revision=?').bind(reordered.findIndex(r=>r.id===moving.id)*10,stamp,moving.id,game,data.revision));const results=await db.batch([...updates,bump(db,game)]);if(!results[updates.length-1].meta.changes)fail('Порядок змінився. Онови вкладку.',409);return json({ok:true});
  }
  if(request.method==='POST'&&tail==='reorder'){
   const data=await request.json();const parent=data.parent_id||null;let ids=data.ids;
@@ -110,7 +130,7 @@ export async function handleMaterialLibrary(request,ctx,url){
   const order=await db.prepare('SELECT MAX(sort_order) AS last FROM room_material_cards WHERE game_id=? AND parent_id IS ?').bind(game,card.parent_id).first();
   const cols=['id','game_id','parent_id',...fields,'sort_order','created_by','created_at','updated_at'];
   const values=[id,game,card.parent_id,...fields.map(f=>card[f]),(order?.last??-10)+10,ctx.user.id,stamp,stamp];
-  await db.batch([db.prepare('INSERT INTO room_material_cards('+cols.join(',')+') VALUES('+cols.map(()=>'?').join(',')+')').bind(...values),bump(db,game)]);
+  await db.batch([db.prepare('INSERT INTO room_material_cards('+cols.join(',')+') VALUES('+cols.map(()=>'?').join(',')+')').bind(...values),...contentChanges(db,id,1,data),bump(db,game)]);
   return json({card:clean(await getCard(db,game,id),true)});
  }
  if(cardMatch&&['PUT','DELETE'].includes(request.method)){
@@ -118,8 +138,8 @@ export async function handleMaterialLibrary(request,ctx,url){
   const data=await request.json();if(data.revision!==row.revision)fail('Картка вже змінена в іншому вікні. Онови її та повтори редагування.',409);
   if(request.method==='DELETE'){const result=await db.batch([db.prepare('DELETE FROM room_material_cards WHERE id=? AND game_id=? AND revision=?').bind(row.id,game,data.revision),bump(db,game)]);if(!result[0].meta.changes)fail('Картка змінилася. Онови список.',409);return json({ok:true});}
   const card=await validate(db,game,data,row,map),stamp=new Date().toISOString();
-  const result=await db.batch([db.prepare('UPDATE room_material_cards SET '+fields.map(f=>f+'=?').join(',')+',revision=revision+1,updated_at=? WHERE id=? AND game_id=? AND revision=?').bind(...fields.map(f=>card[f]),stamp,row.id,game,data.revision),bump(db,game)]);
-  if(!result[0].meta.changes)fail('Картка змінилася. Онови її перед збереженням.',409);
+  const result=await db.batch([...contentChanges(db,row.id,data.revision,data),db.prepare('UPDATE room_material_cards SET '+fields.map(f=>f+'=?').join(',')+',revision=revision+1,updated_at=? WHERE id=? AND game_id=? AND revision=?').bind(...fields.map(f=>card[f]),stamp,row.id,game,data.revision),bump(db,game)]);
+  if(!result.at(-2).meta.changes)fail('Картка змінилася. Онови її перед збереженням.',409);
   return json({card:clean(await getCard(db,game,row.id),true)});
  }
  fail('Сторінку не знайдено.',404);

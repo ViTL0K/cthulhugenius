@@ -75,3 +75,24 @@ test('legacy import is non-destructive, idempotent, and protects its PDFs when a
  assert.equal((await call('keeper','/import-legacy','POST',{})).alreadyImported,true);
  assert.equal(DB.db.prepare("SELECT COUNT(*) AS n FROM migration_records WHERE table_name='hidden_materials'").get().n,1);
 });
+
+test('categories only expose readable sibling materials and support custom labels',async()=>{
+ const f=setup();await f.create({title:'Таємне',kind:'entry',category:'Секрети',audience:'hidden'});await f.create({title:'Лист',kind:'entry',category:'Документи',audience:'selected',targets:['alice']});await f.create({title:'Порт',category:'Локації',audience:'all'});
+ const alice=await f.call('alice');assert.deepEqual(alice.categories,['Документи','Локації']);assert.deepEqual((await f.call('bob')).categories,['Локації']);
+ const filtered=await f.call('alice','?category='+encodeURIComponent('Документи'));assert.deepEqual(filtered.cards.map(c=>c.title),['Лист']);assert.equal((await f.call('bob','?category='+encodeURIComponent('Секрети'))).cards.length,0);
+});
+test('ordered content blocks persist with photo sizes and survive access-only edits',async()=>{
+ const f=setup(),blocks=[{type:'text',text:'Перший опис'},{type:'image',src:tiny,size:'small'},{type:'text',text:'Другий опис'},{type:'image',src:tiny,size:'large'}];
+ let card=(await f.create({title:'Бібліотека',kind:'entry',category:'Локації',audience:'all',blocks})).card;assert.deepEqual(card.blocks,blocks);
+ card=(await f.call('keeper','/cards/'+card.id,'PUT',{title:card.title,revision:card.revision,audience:'selected',targets:['alice']})).card;
+ assert.deepEqual(card.blocks,blocks);assert.equal(card.category,'Локації');assert.deepEqual((await f.call('alice','/cards/'+card.id)).card.blocks,blocks);assert.equal((await f.call('bob','/cards/'+card.id)).status,404);
+ assert.equal((await f.call('alice','/cards/'+card.id,'PUT',{...card,blocks:[]})).status,403);
+ const stale=await f.edit({...card,revision:card.revision-1},{blocks:[]});assert.equal(stale.status,409);assert.deepEqual((await f.call('keeper','/cards/'+card.id)).card.blocks,blocks);
+ assert.equal((await f.edit(card,{blocks:[{type:'image',src:'https://bad.example/image',size:'small'}]})).status,400);assert.deepEqual((await f.call('keeper','/cards/'+card.id)).card.blocks,blocks);
+});
+test('drag movement changes the sibling order, rejects stale edits and enforces keeper access',async()=>{
+ const f=setup(),a=(await f.create({title:'A',audience:'all'})).card,b=(await f.create({title:'B',audience:'all'})).card,c=(await f.create({title:'C',audience:'all'})).card;
+ const payload={parent_id:null,id:c.id,revision:c.revision,before_id:a.id,anchor_revision:a.revision};assert.equal((await f.call('alice','/move','POST',payload)).status,403);assert.equal((await f.call('keeper','/move','POST',payload)).status,200);
+ assert.deepEqual((await f.call('keeper')).cards.map(c=>c.title),['C','A','B']);assert.equal((await f.call('keeper','/move','POST',payload)).status,409);
+ const folder=(await f.create({title:'Вкладка'})).card,child=(await f.create({title:'Дочірня',parent_id:folder.id})).card;assert.equal((await f.call('keeper','/move','POST',{id:b.id,revision:2,before_id:child.id,anchor_revision:child.revision})).status,400);
+});

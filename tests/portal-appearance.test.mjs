@@ -7,7 +7,7 @@ const source=readFileSync(new URL('../public/portal-appearance.js',import.meta.u
 function screen(storage){
  const {document,window}=parseHTML('<html><body><div id="modalBody"></div></body></html>');let observe;
  vm.runInNewContext(source,{document,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},MutationObserver:class{constructor(fn){observe=fn;}observe(){} }});
- function form(){document.querySelector('#modalBody').innerHTML='<form id="appearanceSettings"></form>';observe();return document.querySelector('form');}
+ function form(){document.querySelector('#modalBody').innerHTML='<form id="appearanceSettings"><div id="appearancePreview"></div></form>';observe();return document.querySelector('form');}
  return {document,window,form};
 }
 test('custom colors persist after reload, follow the palette fields and can be reset',()=>{
@@ -22,6 +22,12 @@ test('custom colors persist after reload, follow the palette fields and can be r
 test('appearance drafts do not change saved colors until submitted and invalid storage is ignored',()=>{
  const storage=new Map([['cth-portal-colors','{"background":"url(evil)","surface":"#000000","accent":"#ffffff"}']]),ui=screen(storage),form=ui.form();
  assert.equal(ui.document.body.getAttribute('data-custom-colors'),null);
- [...form.querySelectorAll('button')].find(b=>b.textContent==='Бірюза').click();assert.equal(form.querySelectorAll('input[type=color]')[2].value,'#36d3bd');assert.equal(ui.document.body.getAttribute('data-custom-colors'),null);
+ [...form.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')==='Бірюзова Безодня').click();assert.equal(form.querySelectorAll('input[type=color]')[2].value,'#36D3BD');assert.equal(ui.document.body.getAttribute('data-custom-colors'),null);
  form.querySelector('input[type=color]').value='#ffffff';form.querySelector('input[type=color]').dispatchEvent(new ui.window.Event('input'));assert.ok(form.querySelector('input[type=checkbox]').checked);
+});
+
+test('complete 60/30/10 presets fill all fields and refresh both previews',()=>{
+ const ui=screen(new Map()),form=ui.form(),presets=[...form.querySelectorAll('.portal-palette-preset')];assert.equal(presets.length,6);
+ presets.find(b=>b.getAttribute('aria-label')==='Опівнічний Помаранч').click();assert.deepEqual([...form.querySelectorAll('input[type=color]')].map(i=>i.value),['#141413','#233554','#FF7A1A']);assert.ok(form.querySelector('input[type=checkbox]').checked);assert.equal(form.querySelector('#appearancePreview').children.length,2);assert.equal(form.querySelector('.portal-color-sample').children.length,2);assert.equal(form.querySelector('[aria-pressed=true]').getAttribute('aria-label'),'Опівнічний Помаранч');
+ const input=form.querySelector('input[type=color]');input.value='#ffffff';input.dispatchEvent(new ui.window.Event('input'));assert.equal(form.querySelector('[aria-pressed=true]'),null);
 });

@@ -59,3 +59,13 @@
 @media(max-width:700px){#roomView .room-chat .chatbox:not(.chat-collapsed){height:220px}#roomView .toolbox{width:100%}}
 
 @media(max-width:700px){#roomView.active{overflow:auto}#roomView .room{height:auto;min-height:100dvh}}
+.library-category-filters{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);flex:none}.library-category-filters button{padding:5px 10px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);font-size:12px}.library-category-filters button[aria-pressed=true]{background:var(--gold);color:var(--accent-ink,#121714);border-color:var(--gold)}
+.library-number{position:absolute;left:8px;top:8px;display:grid;place-items:center;min-width:25px;height:25px;padding:2px 6px;border-radius:7px;background:#101713e8;border:1px solid var(--gold);color:#f4e8c9;font-size:12px;pointer-events:none;box-shadow:0 2px 8px #0005}
+.library-tile[draggable=true]{cursor:grab}.library-tile.dragging{opacity:.45}.library-tile[draggable=true]:focus-visible{outline:2px solid var(--gold);outline-offset:4px}.library-tile[draggable=true] .library-card{cursor:grab}
+.library-detail-image{max-width:min(100%,540px);max-height:460px;object-fit:contain}.library-image-small{max-width:min(100%,280px);max-height:260px}.library-image-medium{max-width:min(100%,540px);max-height:460px}.library-image-large{max-width:min(100%,800px);max-height:620px}
+.library-block-editor{display:grid;gap:12px}.library-edit-block{padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--panel2)}.library-block-bar{display:flex;align-items:center;gap:6px;margin-bottom:8px}.library-block-bar strong{margin-right:auto;font-size:13px}.library-block-bar button{padding:4px 7px;font-size:12px}.library-edit-block textarea{width:100%;resize:vertical;min-height:100px}.library-legacy-import{font-size:12px;margin-bottom:10px}
+.sheet-pdf-toolbar{flex-direction:column;align-items:stretch!important;gap:6px!important}.sheet-pdf-actions{flex-wrap:wrap}.sheet-status-row{display:grid;grid-template-columns:minmax(110px,auto) minmax(0,1fr);gap:8px 16px;min-height:44px;height:44px;align-items:center}.sheet-status-row .sheet-save-status{display:block!important;min-width:0;margin:0;text-align:left;font-size:10px;line-height:1.4}.sheet-status-row #sheetRollStatus{max-height:42px;overflow:auto;text-align:right;white-space:normal}
+@media(max-width:700px){.sheet-status-row{grid-template-columns:100px minmax(0,1fr);height:58px;min-height:58px}.sheet-status-row #sheetRollStatus{max-height:56px}}
+
+.sheet-pdf-toolbar .sheet-pdf-actions{order:0!important}.sheet-pdf-toolbar .sheet-status-row{order:1}
+.library-tile.drag-over{outline:2px dashed var(--gold);outline-offset:5px;border-radius:8px}
