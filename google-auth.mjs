@@ -138,14 +138,17 @@ async function finishSignIn(request, env, url, attempt) {
   return redirect(landingPath, [cookie(flowCookie, '', 0), cookie(sessionCookie, token, sessionSeconds)]);
 }
 
-async function currentSession(request, db) {
+export async function sessionUser(request, db) {
   const token = getCookie(request, sessionCookie);
-  if (!tokenPattern.test(token ?? '')) return json({ user: null });
-  const user = await db.prepare(
+  if (!tokenPattern.test(token ?? '')) return null;
+  return db.prepare(
     'SELECT u.id, u.display_name FROM site_sessions s JOIN site_users u ON u.id = s.user_id ' +
     'WHERE s.token_hash = ? AND s.expires_at > ?'
   ).bind(await digest(token), Math.floor(Date.now() / 1000)).first();
-  return json({ user });
+}
+
+async function currentSession(request, db) {
+  return json({ user: await sessionUser(request, db) });
 }
 
 async function signOut(request, db, origin) {

@@ -9,10 +9,15 @@
   <style>
     :root { color-scheme: dark; font: 17px/1.5 system-ui, sans-serif; color: #f3eade; background: #18211b; }
     body { margin: 0; display: grid; place-items: center; min-height: 100vh; }
-    main { box-sizing: border-box; width: min(100% - 2rem, 28rem); padding: 2rem; border: 1px solid #706750; border-radius: .8rem; background: #202922; }
+    main { box-sizing: border-box; width: min(100% - 2rem, 38rem); padding: 2rem; border: 1px solid #706750; border-radius: .8rem; background: #202922; }
     h1 { margin: 0 0 1rem; font: 600 2rem/1.2 Georgia, serif; }
     p { margin: 0 0 1rem; }
     a, button { display: inline-block; border: 1px solid #ddc290; border-radius: .4rem; padding: .55rem .9rem; background: #ddc290; color: #18211b; font: inherit; text-decoration: none; cursor: pointer; }
+    #rooms { margin-top: 1.6rem; border-top: 1px solid #706750; padding-top: 1rem; }
+    #rooms form { margin-bottom: 1rem; }
+    #rooms label { display: block; margin-top: .45rem; }
+    #rooms input { box-sizing: border-box; display: block; width: 100%; padding: .45rem; margin-bottom: .65rem; font: inherit; }
+    #rooms li { margin: .6rem 0; overflow-wrap: anywhere; }
     [hidden] { display: none; }
     :focus-visible { outline: 2px solid #f3eade; outline-offset: 3px; }
   </style>
@@ -26,6 +31,24 @@
     <form id="logout" method="post" action="/api/migration/auth/logout" hidden>
       <button type="submit">Вийти</button>
     </form>
+    <section id="rooms" aria-labelledby="rooms-title" hidden>
+      <h2 id="rooms-title">Мої кімнати</h2>
+      <p id="rooms-status" role="status"></p>
+      <ul id="room-list"></ul>
+      <section id="room-detail" aria-label="Учасники кімнати" hidden></section>
+      <form id="join-room">
+        <label for="room-code">Код запрошення</label>
+        <input id="room-code" name="code" required maxlength="20" autocomplete="off">
+        <button>Приєднатися</button>
+      </form>
+      <form id="create-room" hidden>
+        <label for="room-title">Назва кімнати</label>
+        <input id="room-title" name="title" required maxlength="100">
+        <label for="room-description">Опис (необов’язково)</label>
+        <input id="room-description" name="description" maxlength="1000">
+        <button>Створити кімнату</button>
+      </form>
+    </section>
   </main>
 </body>
 </html>

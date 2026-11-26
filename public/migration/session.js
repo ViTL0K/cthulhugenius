@@ -1,3 +1,5 @@
+import { showRooms } from './rooms.js';
+
 const status = document.getElementById('status');
 const login = document.getElementById('google-login');
 const logout = document.getElementById('logout');
@@ -19,6 +21,7 @@ async function showSession() {
       (user ? `Ти увійшов як ${user.display_name}.` : 'Увійди, щоб перевірити свій акаунт.');
     login.hidden = Boolean(user) && !messages.has(result);
     logout.hidden = !user;
+    if (user) void showRooms();
   } catch {
     status.textContent = 'Вхід через Google зараз недоступний.';
   }
