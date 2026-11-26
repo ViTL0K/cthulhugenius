@@ -1,4 +1,4 @@
-import { showRooms } from './rooms.js';
+import { showPortal } from './rooms.js';
 
 const status = document.getElementById('status');
 const login = document.getElementById('google-login');
@@ -18,13 +18,14 @@ async function showSession() {
     const result = new URLSearchParams(location.search).get('signin');
     if (result) history.replaceState(null, '', location.pathname);
     status.textContent = messages.get(result) ??
-      (user ? `Ти увійшов як ${user.display_name}.` : 'Увійди, щоб перевірити свій акаунт.');
+      (user ? `Ти увійшов як ${user.display_name}.` : 'Увійди через Google, щоб відкрити головне меню.');
     login.hidden = Boolean(user) && !messages.has(result);
     logout.hidden = !user;
-    if (user) void showRooms();
+    if (user) showPortal(user);
   } catch {
     status.textContent = 'Вхід через Google зараз недоступний.';
   }
 }
 
 showSession();
+

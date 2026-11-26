@@ -1,11 +1,16 @@
+import { configurePreferences } from './preferences.js';
+
 const api = '/api/migration/rooms';
-const section = document.getElementById('rooms');
 const list = document.getElementById('room-list');
 const detail = document.getElementById('room-detail');
 const status = document.getElementById('rooms-status');
 const create = document.getElementById('create-room');
 const join = document.getElementById('join-room');
 const nav = document.getElementById('dashboard-nav');
+const portal = document.getElementById('portal');
+const back = document.getElementById('back-home');
+const joinStatus = document.getElementById('join-status');
+let currentView = 'home';
 const viewButtons = Array.from(nav.querySelectorAll('[data-view]'));
 const keeperList = document.getElementById('keeper-rooms');
 const keeperStatus = document.getElementById('keeper-status');
@@ -25,6 +30,7 @@ function roleName(role) {
 async function openRoom(room) {
   try {
     const {members} = await request('/' + encodeURIComponent(room.id));
+    if (currentView !== 'rooms') return;
     const heading = document.createElement('h3');
     heading.textContent = room.title;
     const description = document.createElement('p');
@@ -42,16 +48,13 @@ async function openRoom(room) {
   }
 }
 
-export async function showRooms() {
-  if (nav.hidden) section.hidden = false;
+async function loadRooms(openId) {
   status.textContent = 'Завантажуємо кімнати…';
   try {
     const {rooms, canCreate, accountRole} = await request('');
-    const current = viewButtons.find(button => button.getAttribute('aria-pressed') === 'true');
-    nav.hidden = !canCreate;
     viewButtons.find(button => button.dataset.view === 'keeper').hidden = !canCreate;
     viewButtons.find(button => button.dataset.view === 'admin').hidden = accountRole !== 'admin';
-    if (current?.hidden) selectView('rooms');
+    if (viewButtons.some(button => button.dataset.view === currentView && button.hidden)) selectView('home');
     keeperList.replaceChildren();
     keeperStatus.textContent = '';
     list.replaceChildren();
@@ -69,6 +72,8 @@ export async function showRooms() {
       }
     }
     status.textContent = rooms.length ? '' : 'У тебе ще немає кімнат.';
+    const opened = rooms.find(room => room.id === openId);
+    if (opened) await openRoom(opened);
   } catch (error) {
     status.textContent = error.message;
   }
@@ -78,17 +83,23 @@ for (const [form, path] of [[create, ''], [join, '/join']]) {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const button = form.querySelector('button');
-    const formStatus = form === create ? keeperStatus : status;
+    const formStatus = form === create ? keeperStatus : joinStatus;
+    formStatus.textContent = '';
     button.disabled = true;
     try {
-      await request(path, {
+      const {id} = await request(path, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(Object.fromEntries(new FormData(form))),
       });
       form.reset();
-      await showRooms();
-      if (form === create) keeperStatus.textContent = 'Кімнату створено.';
+      if (form === join && currentView === 'join') {
+        selectView('rooms');
+        await loadRooms(id);
+      } else {
+        await loadRooms();
+        if (form === create) keeperStatus.textContent = 'Кімнату створено.';
+      }
     } catch (error) {
       formStatus.textContent = error.message;
     } finally {
@@ -98,12 +109,24 @@ for (const [form, path] of [[create, ''], [join, '/join']]) {
 }
 
 function selectView(view) {
-  for (const button of viewButtons) {
-    const selected = button.dataset.view === view;
-    button.setAttribute('aria-pressed', String(selected));
-    document.getElementById(button.dataset.view).hidden = !selected;
+  currentView = view;
+  for (const panel of portal.querySelectorAll(':scope > section')) panel.hidden = panel.id !== view;
+  back.hidden = view === 'home';
+  const heading = document.getElementById(view)?.querySelector('h2');
+  if (heading) {
+    heading.tabIndex = -1;
+    heading.focus();
   }
+  if (view === 'join') join.elements.code.focus();
 }
+
+export function showPortal(user) {
+  configurePreferences(user.id);
+  portal.hidden = false;
+  void loadRooms();
+}
+
+back.addEventListener('click', () => selectView('home'));
 
 function showList(id, rows) {
   const list = document.getElementById(id);
@@ -133,6 +156,8 @@ for (const button of viewButtons) {
   button.addEventListener('click', () => {
     const view = button.dataset.view;
     selectView(view);
+    if (view === 'rooms' || view === 'keeper') void loadRooms();
     if (view === 'admin') void showAdmin();
   });
 }
+
