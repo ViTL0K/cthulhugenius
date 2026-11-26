@@ -1,17 +1,19 @@
-import { configurePreferences } from './preferences.js';
+import { configurePreferences } from './preferences.js?v=92';
 
 const api = '/api/migration/rooms';
 const list = document.getElementById('room-list');
-const detail = document.getElementById('room-detail');
 const status = document.getElementById('rooms-status');
 const create = document.getElementById('create-room');
 const join = document.getElementById('join-room');
-const nav = document.getElementById('dashboard-nav');
 const portal = document.getElementById('portal');
 const back = document.getElementById('back-home');
 const joinStatus = document.getElementById('join-status');
 let currentView = 'home';
-const viewButtons = Array.from(nav.querySelectorAll('[data-view]'));
+let currentRoom;
+let viewer;
+let roomRequest = 0;
+let chatTimer;
+const viewButtons = Array.from(portal.querySelectorAll('[data-view]'));
 const keeperList = document.getElementById('keeper-rooms');
 const keeperStatus = document.getElementById('keeper-status');
 const adminStatus = document.getElementById('admin-status');
@@ -28,25 +30,116 @@ function roleName(role) {
 }
 
 async function openRoom(room) {
+  const version = ++roomRequest;
   try {
     const {members} = await request('/' + encodeURIComponent(room.id));
-    if (currentView !== 'rooms') return;
-    const heading = document.createElement('h3');
-    heading.textContent = room.title;
-    const description = document.createElement('p');
-    description.textContent = room.description;
-    const memberList = document.createElement('ul');
+    if (currentView !== 'rooms' || version !== roomRequest) return;
+    currentRoom = room;
+    document.getElementById('gameTitle').textContent = room.title;
+    document.getElementById('table-code').textContent = room.code ? 'Кімната · ' + room.code : '';
+    document.getElementById('table-description').textContent = room.description;
+    document.getElementById('table-roll').textContent = '';
+    document.getElementById('table-keeper').replaceChildren();
+    document.getElementById('table-players').replaceChildren();
+    const recipient = document.getElementById('chat-recipient');
+    recipient.replaceChildren();
     for (const member of members) {
-      const row = document.createElement('li');
-      row.textContent = member.display_name + ' · ' + roleName(member.role);
-      memberList.append(row);
+      const row = document.createElement('div');
+      row.className = 'person';
+      const avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      avatar.textContent = Array.from(member.display_name)[0];
+      row.append(avatar, member.display_name);
+      document.getElementById(member.role === 'keeper' ? 'table-keeper' : 'table-players').append(row);
+      if (member.user_id !== viewer.id) recipient.add(new Option(member.display_name, member.user_id));
     }
-    detail.replaceChildren(heading, description, memberList);
-    detail.hidden = false;
+    document.querySelector('#private-chat button').disabled = !recipient.options.length;
+    for (const id of ['public-chat-log', 'private-chat-log']) {
+      const log = document.getElementById(id);
+      delete log.dataset.messages;
+      log.replaceChildren();
+    }
+    selectView('tabletop');
+    void refreshChat();
   } catch (error) {
-    status.textContent = error.message;
+    if (version === roomRequest) status.textContent = error.message;
   }
 }
+
+const chatRecipient = document.getElementById('chat-recipient');
+const chatStatus = document.getElementById('chat-status');
+
+async function refreshChat() {
+  if (currentView !== 'tabletop') return;
+  const room = currentRoom;
+  const recipient = chatRecipient.value;
+  try {
+    const {messages} = await request('/' + encodeURIComponent(room.id) + '/messages');
+    if (currentView !== 'tabletop' || currentRoom !== room || chatRecipient.value !== recipient) return;
+    renderChat('public-chat-log', messages.filter(message => !message.recipient_id));
+    renderChat('private-chat-log', messages.filter(message => message.recipient_id && (
+      message.sender_id === viewer.id ? message.recipient_id === recipient : message.sender_id === recipient
+    )));
+    chatStatus.textContent = '';
+  } catch (error) {
+    if (currentView === 'tabletop' && currentRoom === room) chatStatus.textContent = error.message;
+  }
+}
+
+function renderChat(id, messages) {
+  const log = document.getElementById(id);
+  const signature = messages.map(message => message.id).join(',');
+  if (log.dataset.messages === signature) return;
+  log.dataset.messages = signature;
+  const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+  const rows = messages.map(message => {
+    const row = document.createElement('p');
+    const author = document.createElement('strong');
+    author.textContent = message.display_name;
+    row.append(author, ' · ', message.body);
+    return row;
+  });
+  log.replaceChildren(...rows);
+  if (atEnd) log.scrollTop = log.scrollHeight;
+}
+
+chatRecipient.addEventListener('change', () => { void refreshChat(); });
+for (const id of ['public-chat', 'private-chat']) {
+  const form = document.getElementById(id);
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    const input = form.elements.text;
+    const room = currentRoom;
+    button.disabled = true;
+    try {
+      await request('/' + encodeURIComponent(room.id) + '/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: input.value, recipient: id === 'private-chat' ? chatRecipient.value : null}),
+      });
+      if (currentRoom === room) {
+        form.reset();
+        void refreshChat();
+      }
+    } catch (error) {
+      if (currentRoom === room) chatStatus.textContent = error.message;
+    } finally {
+      button.disabled = id === 'private-chat' && !chatRecipient.value;
+    }
+  });
+}
+
+document.getElementById('table-dice').addEventListener('submit', event => {
+  event.preventDefault();
+  const {count, sides} = event.currentTarget.elements;
+  const rolls = Array.from({length: Number(count.value)}, () => Math.floor(Math.random() * Number(sides.value)) + 1);
+  document.getElementById('table-roll').textContent =
+    rolls.join(' + ') + ' = ' + rolls.reduce((sum, roll) => sum + roll, 0);
+});
+
+document.getElementById('leave-table').addEventListener('click', () => selectView('rooms'));
+document.getElementById('create-game-shortcut').addEventListener('click', () => selectView('keeper'));
 
 async function loadRooms(openId) {
   status.textContent = 'Завантажуємо кімнати…';
@@ -55,6 +148,8 @@ async function loadRooms(openId) {
     viewButtons.find(button => button.dataset.view === 'keeper').hidden = !canCreate;
     viewButtons.find(button => button.dataset.view === 'admin').hidden = accountRole !== 'admin';
     if (viewButtons.some(button => button.dataset.view === currentView && button.hidden)) selectView('home');
+    document.getElementById('create-shortcut').hidden = !canCreate;
+    document.getElementById('portalUser').textContent = roleName(accountRole) + ' · ' + viewer.display_name;
     keeperList.replaceChildren();
     keeperStatus.textContent = '';
     list.replaceChildren();
@@ -109,10 +204,16 @@ for (const [form, path] of [[create, ''], [join, '/join']]) {
 }
 
 function selectView(view) {
+  ++roomRequest;
   currentView = view;
+  clearInterval(chatTimer);
+  const playing = view === 'tabletop';
+  document.body.classList.toggle('table-open', playing);
+  document.getElementById('portal-top').hidden = playing;
+  if (playing) chatTimer = setInterval(refreshChat, 3500);
   for (const panel of portal.querySelectorAll(':scope > section')) panel.hidden = panel.id !== view;
-  back.hidden = view === 'home';
-  const heading = document.getElementById(view)?.querySelector('h2');
+  back.hidden = view === 'home' || playing;
+  const heading = document.getElementById(view)?.querySelector('h1, h2, #leave-table');
   if (heading) {
     heading.tabIndex = -1;
     heading.focus();
@@ -121,6 +222,8 @@ function selectView(view) {
 }
 
 export function showPortal(user) {
+  viewer = user;
+  document.getElementById('portalUser').textContent = user.display_name;
   configurePreferences(user.id);
   portal.hidden = false;
   void loadRooms();

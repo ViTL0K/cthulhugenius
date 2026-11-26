@@ -1,4 +1,4 @@
-import { showPortal } from './rooms.js';
+import { showPortal } from './rooms.js?v=92';
 
 const status = document.getElementById('status');
 const login = document.getElementById('google-login');
@@ -19,7 +19,8 @@ async function showSession() {
     if (result) history.replaceState(null, '', location.pathname);
     status.textContent = messages.get(result) ??
       (user ? `Ти увійшов як ${user.display_name}.` : 'Увійди через Google, щоб відкрити головне меню.');
-    login.hidden = Boolean(user) && !messages.has(result);
+    document.getElementById('entryView').hidden = Boolean(user);
+    login.hidden = Boolean(user);
     logout.hidden = !user;
     if (user) showPortal(user);
   } catch {

@@ -59,11 +59,72 @@ async function joinRoom(db, user, data) {
 
 async function roomMembers(db, user, id) {
   const {results} = await db.prepare(
-    'SELECT m.display_name, m.role FROM game_members own ' +
+    'SELECT m.user_id, m.display_name, m.role FROM game_members own ' +
     'JOIN game_members m ON m.game_id = own.game_id WHERE own.game_id = ? AND own.user_id = ? ' +
     'ORDER BY m.joined_at, m.user_id'
   ).bind(id, user.id).all();
   return results.length ? json({members: results}) : json({error: 'Кімнату не знайдено.'}, 404);
+}
+
+const createMessages = `CREATE TABLE IF NOT EXISTS migration_room_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id TEXT NOT NULL,
+  sender_id TEXT NOT NULL,
+  recipient_id TEXT,
+  body TEXT NOT NULL,
+  FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+)`;
+
+const messageSchemas = new WeakMap();
+
+function ensureMessageSchema(db) {
+  if (!messageSchemas.has(db)) {
+    const initialization = (async () => {
+      await db.prepare(createMessages).run();
+      await db.prepare(
+        'CREATE INDEX IF NOT EXISTS migration_room_messages_game ON migration_room_messages(game_id, id)'
+      ).run();
+    })().catch(error => {
+      messageSchemas.delete(db);
+      throw error;
+    });
+    messageSchemas.set(db, initialization);
+  }
+  return messageSchemas.get(db);
+}
+
+async function roomMessages(request, db, user, gameId) {
+  const membership = await db.prepare(
+    'SELECT 1 AS allowed FROM game_members WHERE game_id = ? AND user_id = ?'
+  ).bind(gameId, user.id).first();
+  if (!membership) return json({error: 'Кімнату не знайдено.'}, 404);
+
+  await ensureMessageSchema(db);
+
+  if (request.method === 'GET') {
+    const {results} = await db.prepare(
+      'SELECT msg.id, msg.sender_id, msg.recipient_id, msg.body, m.display_name ' +
+      'FROM migration_room_messages msg JOIN game_members m ' +
+      'ON m.game_id = msg.game_id AND m.user_id = msg.sender_id ' +
+      'WHERE msg.game_id = ? AND (msg.recipient_id IS NULL OR msg.recipient_id = ? OR msg.sender_id = ?) ' +
+      'ORDER BY msg.id DESC LIMIT 100'
+    ).bind(gameId, user.id, user.id).all();
+    return json({messages: results.reverse()});
+  }
+
+  const data = await request.json().catch(() => null);
+  const body = typeof data?.text === 'string' ? data.text.trim() : '';
+  const recipient = data?.recipient ?? null;
+  if (!body || body.length > 2000 || (recipient !== null && typeof recipient !== 'string')) {
+    return json({error: 'Введи повідомлення до 2000 символів.'}, 400);
+  }
+  const result = await db.prepare(
+    'INSERT INTO migration_room_messages (game_id, sender_id, recipient_id, body) ' +
+    'SELECT game_id, user_id, ?, ? FROM game_members own WHERE game_id = ? AND user_id = ? ' +
+    'AND (? IS NULL OR EXISTS (SELECT 1 FROM game_members target ' +
+    'WHERE target.game_id = own.game_id AND target.user_id = ? AND target.user_id <> own.user_id))'
+  ).bind(recipient, body, gameId, user.id, recipient, recipient).run();
+  return result.meta.changes ? json({sent: true}, 201) : json({error: 'Одержувача не знайдено.'}, 404);
 }
 
 async function adminOverview(db, user) {
@@ -94,6 +155,10 @@ export async function handleRooms(request, db, url) {
     }
     const user = await sessionUser(request, db);
     if (!user) return json({error: 'Спочатку увійди через Google.'}, 401);
+    const messageRoom = /^([a-f0-9-]{36})\/messages$/.exec(url.pathname.slice(route.length + 1));
+    if (messageRoom && (request.method === 'GET' || request.method === 'POST')) {
+      return await roomMessages(request, db, user, messageRoom[1]);
+    }
     if (request.method === 'GET') {
       if (url.pathname === route) return await listRooms(db, user);
       if (url.pathname === route + '/admin') return await adminOverview(db, user);
@@ -109,3 +174,4 @@ export async function handleRooms(request, db, url) {
     return json({error: 'Не вдалося виконати запит до кімнат. Спробуй ще раз.'}, 503);
   }
 }
+

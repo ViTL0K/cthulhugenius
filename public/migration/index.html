@@ -6,57 +6,45 @@
   <meta name="robots" content="noindex">
   <meta name="referrer" content="same-origin">
   <title>Поклик Ктулху — ігровий портал</title>
-  <style>
-    :root { color-scheme: dark; font: 17px/1.5 system-ui, sans-serif; color: #f3eade; background: #18211b; }
-    body { margin: 0; display: grid; place-items: center; min-height: 100vh; }
-    main { box-sizing: border-box; width: min(100% - 2rem, 48rem); padding: 2rem; border: 1px solid #706750; border-radius: .8rem; background: #202922; }
-    h1 { margin: 0 0 1rem; font: 600 2rem/1.2 Georgia, serif; }
-    p { margin: 0 0 1rem; }
-    a, button { display: inline-block; border: 1px solid #ddc290; border-radius: .4rem; padding: .55rem .9rem; background: #ddc290; color: #18211b; font: inherit; text-decoration: none; cursor: pointer; }
-    #portal { margin-top: 1.4rem; border-top: 1px solid #706750; padding-top: 1rem; }
-    #dashboard-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .7rem; }
-    #dashboard-nav button { min-height: 4rem; text-align: left; }
-    #portal label { display: block; margin-top: .45rem; }
-    #portal input, #portal textarea, #portal select { box-sizing: border-box; display: block; width: 100%; padding: .45rem; margin-bottom: .65rem; font: inherit; }
-    #portal li { margin: .6rem 0; overflow-wrap: anywhere; }
-    #sheet-form, #sheet-stats, #rules details { margin: .8rem 0; }
-    #sheet-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .5rem; }
-    #rules summary { cursor: pointer; padding: .5rem 0; }
-    [data-theme="paper"] { color-scheme: light; color: #281c12; background: #dfcda9; }
-    [data-theme="paper"] main { background: #f4e6cb; }
-    button:disabled { cursor: wait; }
-    [hidden] { display: none; }
-    :focus-visible { outline: 2px solid #f3eade; outline-offset: 3px; }
-  </style>
-  <script type="module" src="./session.js"></script>
+  <link rel="stylesheet" href="./v92-layout.css">
+  <link rel="stylesheet" href="./v92-appearance.css">
+  <link rel="stylesheet" href="./v92-cloudflare.css">
+  <script type="module" src="./session.js?v=92"></script>
 </head>
-<body>
-  <main>
-    <h1>Поклик Ктулху</h1>
-    <p id="status" role="status">Перевіряємо вхід…</p>
-    <a id="google-login" href="/api/migration/auth/google" hidden>Увійти через Google</a>
-    <form id="logout" method="post" action="/api/migration/auth/logout" hidden>
-      <button type="submit">Вийти</button>
-    </form>
-    <div id="portal" hidden>
-      <button id="back-home" type="button" hidden>До головного меню</button>
-      <section id="home" aria-labelledby="home-title">
-        <h2 id="home-title" tabindex="-1">Головне меню</h2>
-        <nav id="dashboard-nav" aria-label="Головне меню">
-          <button type="button" data-view="rules">Правила гри</button>
-          <button type="button" data-view="sheets">Листи персонажів</button>
-          <button type="button" data-view="join">Увійти в гру</button>
-          <button type="button" data-view="rooms">Мої кімнати</button>
-          <button type="button" data-view="settings">Налаштування</button>
-          <button type="button" data-view="keeper" hidden>Кабінет ведучого</button>
-          <button type="button" data-view="admin" hidden>Адміністрування</button>
-        </nav>
-      </section>
-    <section id="rooms" aria-labelledby="rooms-title" hidden>
+<body data-theme="05_brick_wall" data-palette="forest">
+<main class="app">
+<section id="entryView" class="view active">
+    <div class="entry">
+      <div class="entry-art">
+        <div class="brand"><div class="brand-mark">☼</div><div class="eyebrow"><span data-ui-text="Інструмент для гри">Інструмент для гри</span></div><h1>Поклик<br>Ктулху</h1><p class="muted"><span data-ui-text="Стіл ведучого, що вміщується в одному вікні.">Стіл ведучого, що вміщується в одному вікні.</span></p></div>
+        <div class="entry-quote"><span id="entryQuoteText">«Свіже повітря надто переоцінене тими, у кого вдома не налаштований нормальний кондиціонер і другий монітор.»</span><small id="entryQuoteMeta">Репін Олег · 2026</small></div>
+      </div>
+      <div class="entry-card">
+  <div class="eyebrow">Особистий вхід</div>
+  <h2>Поклик Ктулху</h2>
+  <p id="status" class="muted small" role="status">Перевіряємо вхід…</p>
+  <a class="btn primary" id="google-login" href="/api/migration/auth/google" hidden>Увійти через Google →</a>
+</div></div></section><div id="portal" class="portal-shell" hidden>
+<header class="topbar" id="portal-top">
+<div class="brand-mini"><div class="brand-mark">☼</div><strong>Поклик Ктулху</strong></div>
+<div class="top-actions"><span id="portalUser" class="pill"></span><button type="button" class="icon-btn" data-view="settings" aria-label="Налаштування">⚙</button>
+<form id="logout" method="post" action="/api/migration/auth/logout" hidden><button class="btn" type="submit">Вийти</button></form></div>
+</header>
+<button class="btn" id="back-home" type="button" hidden>До головного меню</button>
+<section id="home" class="portal-content" aria-labelledby="home-title">
+<h1 id="home-title" class="eyebrow portal-heading" tabindex="-1">Особистий ігровий портал</h1>
+<div id="portalQuotes"><p id="portalQuoteText"><strong>«Свіже повітря надто переоцінене тими, у кого вдома не налаштований нормальний кондиціонер і другий монітор.»</strong><br>Репін Олег · 2026</p></div>
+<div class="room-center-card" id="create-shortcut" hidden><span class="muted small">Створення пригоди</span> <button class="btn" type="button" id="create-game-shortcut">Створи пригоду</button></div>
+<nav id="dashboard-nav" class="portal-grid" aria-label="Головне меню"><button class="portal-card " type="button" data-view="rooms"><div class="card-icon" aria-hidden="true">▤</div><h3>Мої пригоди</h3><p>Переглянути й відкрити свої кімнати.</p></button>
+<button class="portal-card featured" type="button" data-view="rules"><div class="card-icon" aria-hidden="true">⌘</div><h3>Правила гри</h3><p>Розділи правил і пам’ятки для гравців та ведучого.</p></button>
+<button class="portal-card " type="button" data-view="keeper" hidden><div class="card-icon" aria-hidden="true">＋</div><h3>Створити нову гру</h3><p>Додати пригоду й окрему ігрову кімнату.</p></button>
+<button class="portal-card " type="button" data-view="admin" hidden><div class="card-icon" aria-hidden="true">⚙</div><h3>Керування сайтом</h3><p>Кімнати, акаунти й ролі.</p></button>
+<button class="portal-card " type="button" data-view="sheets"><div class="card-icon" aria-hidden="true">♙</div><h3>Листи персонажів</h3><p>Створити й відредагувати чернетку дослідника.</p></button>
+<button class="portal-card " type="button" data-view="join"><div class="card-icon" aria-hidden="true">↪</div><h3>Увійти в гру</h3><p>Приєднатися до кімнати за кодом запрошення.</p></button>
+</nav></section>    <section id="rooms" aria-labelledby="rooms-title" hidden>
       <h2 id="rooms-title">Мої кімнати</h2>
       <p id="rooms-status" role="status"></p>
       <ul id="room-list"></ul>
-      <section id="room-detail" aria-label="Учасники кімнати" hidden></section>
     </section>
     <section id="join" aria-labelledby="join-title" hidden>
       <h2 id="join-title">Увійти в гру</h2>
@@ -118,13 +106,26 @@
       <h2 id="settings-title">Налаштування</h2>
       <label for="portal-theme">Вигляд порталу</label>
       <select id="portal-theme">
-        <option value="dark">Темний</option>
+        <option value="dark">Цегла</option>
         <option value="paper">Пергамент</option>
       </select>
       <p id="settings-status" role="status"></p>
     </section>
-    </div>
-  </main>
-</body>
-</html>
-
+<section id="tabletop" hidden aria-labelledby="gameTitle">
+<div class="room">
+  <header class="room-head"><div class="room-title"><button type="button" class="room-home" id="leave-table" title="До пригод"><span class="brand-mark" aria-hidden="true">☼</span><strong id="gameTitle"></strong></button><span id="table-code" class="eyebrow"></span></div></header>
+  <aside class="roster" aria-label="Учасники"><div class="roster-label">Ведучий</div><div id="table-keeper"></div><div class="roster-label">Гравці</div><div id="table-players"></div></aside>
+  <section class="stage" aria-label="Спільна дошка"><div class="scene-grid"></div><div class="stage-empty-hint">Спільна дошка гри</div></section>
+  <aside class="toolbox"><h3>Інструменти</h3><div id="table-description"></div>
+    <button class="tool-btn" type="button" data-view="sheets">♙ Листи персонажів</button>
+    <button class="tool-btn" type="button" data-view="rules">⌘ Правила гри</button>
+    <form class="tool-card" id="table-dice"><h4>Кидки кубиків</h4><label>Кількість <input name="count" type="number" min="1" max="20" value="1" required></label><label>Кістка <select name="sides"><option value="100">К100</option><option value="20">К20</option><option value="12">К12</option><option value="10">К10</option><option value="8">К8</option><option value="6">К6</option><option value="4">К4</option></select></label><button type="submit" class="btn primary">Кинути</button><p id="table-roll" role="status" class="muted small"></p></form>
+  </aside>
+  <section class="room-chat">
+    <div class="chatbox"><div class="chat-head"><h3>Спільний чат</h3><span class="pill">Усі учасники</span></div><div id="public-chat-log" class="chat-log" role="log"></div>
+    <form class="chat-line" id="public-chat"><input name="text" aria-label="Повідомлення всім учасникам" required maxlength="2000" placeholder="Написати повідомлення…"><button class="btn">Надіслати</button></form></div>
+    <div class="chatbox"><div class="chat-head"><h3>Особистий чат</h3><select id="chat-recipient" aria-label="Одержувач"></select></div><div id="private-chat-log" class="chat-log" role="log"></div>
+    <form class="chat-line" id="private-chat"><input name="text" aria-label="Приватне повідомлення" required maxlength="2000" placeholder="Приватне повідомлення…"><button class="btn">Надіслати</button></form></div>
+    <p id="chat-status" class="muted small" role="status"></p>
+  </section>
+</div></section></div></main></body></html>

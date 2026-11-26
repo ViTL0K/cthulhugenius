@@ -1,0 +1,32 @@
+[hidden] { display: none !important; }
+#google-login { display: block; text-align: center; text-decoration: none; }
+#portalQuoteText { margin: 0 0 2rem; }
+#create-shortcut { margin-bottom: 1.75rem; }
+#portal > section:not(#home):not(#tabletop) { max-width: 840px; margin: 16px auto; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+#portal > section:not(#home):not(#tabletop) label { display: block; margin-top: .5rem; }
+#portal > section:not(#home):not(#tabletop) :is(input, select, textarea) { display: block; width: 100%; margin-bottom: .65rem; padding: .5rem; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+#portal > section:not(#home):not(#tabletop) button:not(.btn) { padding: .55rem .9rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); color: var(--ink); }
+#back-home { margin-top: 1rem; }
+#sheet-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+#rules details { margin: .8rem 0; }
+#rules summary { cursor: pointer; padding: .5rem 0; }
+body.table-open #portal { max-width: none; padding: 0; }
+#tabletop .room { grid-template-rows: 64px minmax(320px, 1fr) minmax(205px, .4fr); }
+#tabletop .tool-card { display: grid; gap: .6rem; margin-top: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; }
+#tabletop :is(input, select) { min-width: 0; padding: .5rem; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+#tabletop .chatbox { min-height: 205px; }
+#tabletop .chat-line { display: flex; gap: 8px; }
+#tabletop .chat-line input { flex: 1; }
+#tabletop .chat-log { overflow: auto; overflow-wrap: anywhere; min-height: 4rem; }
+#tabletop .chat-log p { margin: 0 0 .5rem; }
+@media (max-width: 700px) {
+  .top-actions { flex-wrap: wrap; justify-content: end; }
+  #tabletop .room { height: auto; display: flex; flex-direction: column; }
+  #tabletop .stage { min-height: 230px; }
+  #tabletop .room-chat { display: grid; grid-template-columns: 1fr; }
+}
+#chat-status { grid-column: 1 / -1; margin: 0; }
+#chat-status:empty { display: none; }
+#tabletop .room-title { grid-column: 1 / -1; }
+#tabletop .chat-log { flex: 1 1 auto; }
+#tabletop .chatbox { display: flex; flex-direction: column; }

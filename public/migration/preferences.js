@@ -21,10 +21,12 @@ export function configurePreferences(userId) {
   } catch {
     sheetStatus.textContent = 'Не вдалося прочитати чернетки з цього браузера.';
   }
-  document.documentElement.dataset.theme = theme.value;
+  document.body.dataset.theme = theme.value === 'paper' ? '01_parchment_light' : '05_brick_wall';
+    document.body.dataset.palette = theme.value === 'paper' ? 'sand' : 'forest';
 
   theme.addEventListener('change', () => {
-    document.documentElement.dataset.theme = theme.value;
+    document.body.dataset.theme = theme.value === 'paper' ? '01_parchment_light' : '05_brick_wall';
+    document.body.dataset.palette = theme.value === 'paper' ? 'sand' : 'forest';
     try {
       localStorage.setItem(key + 'theme', theme.value);
       settingsStatus.textContent = 'Вигляд збережено.';
