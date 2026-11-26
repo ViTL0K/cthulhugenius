@@ -14,7 +14,8 @@ async function listRooms(db, user) {
     'ORDER BY g.created_at DESC, g.id'
   ).bind(user.id).all();
   const role = await db.prepare('SELECT role FROM account_roles WHERE user_id = ?').bind(user.id).first();
-  return json({rooms: results, canCreate: ['admin', 'keeper'].includes(role?.role)});
+  const accountRole = role?.role ?? 'player';
+  return json({rooms: results, accountRole, canCreate: accountRole !== 'player'});
 }
 
 async function createRoom(db, user, data) {
@@ -65,6 +66,27 @@ async function roomMembers(db, user, id) {
   return results.length ? json({members: results}) : json({error: 'Кімнату не знайдено.'}, 404);
 }
 
+async function adminOverview(db, user) {
+  const admin = await db.prepare(
+    "SELECT 1 AS allowed FROM account_roles WHERE user_id = ? AND role = 'admin'"
+  ).bind(user.id).first();
+  if (!admin) return json({error: 'Цей розділ доступний адміністратору сайту.'}, 403);
+
+  const [rooms, accounts] = await db.batch([
+    db.prepare(
+      'SELECT g.title, g.created_at, u.display_name AS keeper_name, ' +
+      '(SELECT COUNT(*) FROM game_members m WHERE m.game_id = g.id) AS member_count ' +
+      'FROM games g JOIN site_users u ON u.id = g.keeper_id ORDER BY g.created_at DESC LIMIT 100'
+    ),
+    db.prepare(
+      "SELECT u.display_name, COALESCE(r.role, 'player') AS role " +
+      'FROM site_users u LEFT JOIN account_roles r ON r.user_id = u.id ' +
+      'ORDER BY u.created_at DESC LIMIT 100'
+    ),
+  ]);
+  return json({rooms: rooms.results, accounts: accounts.results});
+}
+
 export async function handleRooms(request, db, url) {
   try {
     if (request.method === 'POST' && request.headers.get('Origin') !== url.origin) {
@@ -74,6 +96,7 @@ export async function handleRooms(request, db, url) {
     if (!user) return json({error: 'Спочатку увійди через Google.'}, 401);
     if (request.method === 'GET') {
       if (url.pathname === route) return await listRooms(db, user);
+      if (url.pathname === route + '/admin') return await adminOverview(db, user);
       const id = url.pathname.slice(route.length + 1);
       if (/^[a-f0-9-]{36}$/.test(id)) return await roomMembers(db, user, id);
     }

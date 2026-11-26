@@ -13,7 +13,9 @@
     h1 { margin: 0 0 1rem; font: 600 2rem/1.2 Georgia, serif; }
     p { margin: 0 0 1rem; }
     a, button { display: inline-block; border: 1px solid #ddc290; border-radius: .4rem; padding: .55rem .9rem; background: #ddc290; color: #18211b; font: inherit; text-decoration: none; cursor: pointer; }
-    #rooms { margin-top: 1.6rem; border-top: 1px solid #706750; padding-top: 1rem; }
+    #dashboard-nav { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; }
+    #dashboard-nav button[aria-pressed="false"] { background: transparent; color: #f3eade; }
+    #rooms, #admin, #keeper { margin-top: 1.6rem; border-top: 1px solid #706750; padding-top: 1rem; }
     #rooms form { margin-bottom: 1rem; }
     #rooms label { display: block; margin-top: .45rem; }
     #rooms input { box-sizing: border-box; display: block; width: 100%; padding: .45rem; margin-bottom: .65rem; font: inherit; }
@@ -31,6 +33,11 @@
     <form id="logout" method="post" action="/api/migration/auth/logout" hidden>
       <button type="submit">Вийти</button>
     </form>
+    <nav id="dashboard-nav" aria-label="Кабінети" hidden>
+      <button type="button" data-view="rooms" aria-pressed="true">Кабінет гравця</button>
+      <button type="button" data-view="keeper" aria-pressed="false" hidden>Кабінет ведучого</button>
+      <button type="button" data-view="admin" aria-pressed="false" hidden>Адміністрування</button>
+    </nav>
     <section id="rooms" aria-labelledby="rooms-title" hidden>
       <h2 id="rooms-title">Мої кімнати</h2>
       <p id="rooms-status" role="status"></p>
@@ -41,13 +48,26 @@
         <input id="room-code" name="code" required maxlength="20" autocomplete="off">
         <button>Приєднатися</button>
       </form>
-      <form id="create-room" hidden>
+    </section>
+    <section id="keeper" aria-labelledby="keeper-title" hidden>
+      <h2 id="keeper-title">Кабінет ведучого</h2>
+      <p id="keeper-status" role="status"></p>
+      <ul id="keeper-rooms"></ul>
+      <form id="create-room">
         <label for="room-title">Назва кімнати</label>
         <input id="room-title" name="title" required maxlength="100">
         <label for="room-description">Опис (необов’язково)</label>
         <input id="room-description" name="description" maxlength="1000">
         <button>Створити кімнату</button>
       </form>
+    </section>
+    <section id="admin" aria-labelledby="admin-title" hidden>
+      <h2 id="admin-title">Адміністрування</h2>
+      <p id="admin-status" role="status"></p>
+      <h3>Кімнати сайту</h3>
+      <ul id="admin-rooms"></ul>
+      <h3>Акаунти й ролі</h3>
+      <ul id="admin-accounts"></ul>
     </section>
   </main>
 </body>
