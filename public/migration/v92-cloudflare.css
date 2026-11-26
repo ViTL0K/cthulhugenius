@@ -30,3 +30,8 @@ body.table-open #portal { max-width: none; padding: 0; }
 #tabletop .room-title { grid-column: 1 / -1; }
 #tabletop .chat-log { flex: 1 1 auto; }
 #tabletop .chatbox { display: flex; flex-direction: column; }
+#board-scroll { position: absolute; inset: 0; z-index: 1; overflow: auto; touch-action: none; }
+#board-map { display: block; max-width: none; margin: auto; user-select: none; pointer-events: none; }
+#tabletop .stage-top { z-index: 2; }
+#board-status { position: absolute; z-index: 3; left: 12px; bottom: 8px; background: var(--panel); padding: 5px 9px; border-radius: 6px; }
+#board-status:empty { display: none; }

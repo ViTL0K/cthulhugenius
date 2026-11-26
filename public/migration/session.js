@@ -1,4 +1,4 @@
-import { showPortal } from './rooms.js?v=92';
+import { showPortal } from './rooms.js?v=92.1';
 
 const status = document.getElementById('status');
 const login = document.getElementById('google-login');

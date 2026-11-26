@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./v92-layout.css">
   <link rel="stylesheet" href="./v92-appearance.css">
   <link rel="stylesheet" href="./v92-cloudflare.css">
-  <script type="module" src="./session.js?v=92"></script>
+  <script type="module" src="./session.js?v=92.1"></script>
 </head>
 <body data-theme="05_brick_wall" data-palette="forest">
 <main class="app">
@@ -115,7 +115,18 @@
 <div class="room">
   <header class="room-head"><div class="room-title"><button type="button" class="room-home" id="leave-table" title="До пригод"><span class="brand-mark" aria-hidden="true">☼</span><strong id="gameTitle"></strong></button><span id="table-code" class="eyebrow"></span></div></header>
   <aside class="roster" aria-label="Учасники"><div class="roster-label">Ведучий</div><div id="table-keeper"></div><div class="roster-label">Гравці</div><div id="table-players"></div></aside>
-  <section class="stage" aria-label="Спільна дошка"><div class="scene-grid"></div><div class="stage-empty-hint">Спільна дошка гри</div></section>
+  <section class="stage" aria-label="Спільна дошка">
+    <div class="stage-top"><div class="stage-controls">
+      <button type="button" id="board-zoom-out" aria-label="Віддалити" disabled>−</button>
+      <button type="button" id="board-zoom-in" aria-label="Наблизити" disabled>+</button>
+      <button type="button" id="board-fit" aria-label="Підігнати карту" disabled>□</button>
+      <button type="button" id="board-upload-button" hidden>Додати карту</button>
+    </div></div>
+    <div class="scene-grid"></div><div class="stage-empty-hint" id="board-hint">Спільна дошка гри</div>
+    <div id="board-scroll" hidden><img id="board-map" alt="Карта пригоди"></div>
+    <input id="board-upload" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+    <p id="board-status" role="status"></p>
+  </section>
   <aside class="toolbox"><h3>Інструменти</h3><div id="table-description"></div>
     <button class="tool-btn" type="button" data-view="sheets">♙ Листи персонажів</button>
     <button class="tool-btn" type="button" data-view="rules">⌘ Правила гри</button>

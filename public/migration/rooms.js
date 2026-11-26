@@ -1,3 +1,4 @@
+import { activateBoard, refreshBoard } from './board.js';
 import { configurePreferences } from './preferences.js?v=92';
 
 const api = '/api/migration/rooms';
@@ -35,6 +36,7 @@ async function openRoom(room) {
     const {members} = await request('/' + encodeURIComponent(room.id));
     if (currentView !== 'rooms' || version !== roomRequest) return;
     currentRoom = room;
+    activateBoard(room, request);
     document.getElementById('gameTitle').textContent = room.title;
     document.getElementById('table-code').textContent = room.code ? 'Кімната · ' + room.code : '';
     document.getElementById('table-description').textContent = room.description;
@@ -210,7 +212,13 @@ function selectView(view) {
   const playing = view === 'tabletop';
   document.body.classList.toggle('table-open', playing);
   document.getElementById('portal-top').hidden = playing;
-  if (playing) chatTimer = setInterval(refreshChat, 3500);
+  if (playing) {
+    void refreshBoard();
+    chatTimer = setInterval(() => {
+      void refreshChat();
+      void refreshBoard();
+    }, 4500);
+  }
   for (const panel of portal.querySelectorAll(':scope > section')) panel.hidden = panel.id !== view;
   back.hidden = view === 'home' || playing;
   const heading = document.getElementById(view)?.querySelector('h1, h2, #leave-table');

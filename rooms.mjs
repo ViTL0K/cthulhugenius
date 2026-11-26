@@ -75,22 +75,27 @@ const createMessages = `CREATE TABLE IF NOT EXISTS migration_room_messages (
   FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
 )`;
 
-const messageSchemas = new WeakMap();
+const roomSchemas = new WeakMap();
 
-function ensureMessageSchema(db) {
-  if (!messageSchemas.has(db)) {
+function ensureRoomSchema(db) {
+  if (!roomSchemas.has(db)) {
     const initialization = (async () => {
       await db.prepare(createMessages).run();
       await db.prepare(
         'CREATE INDEX IF NOT EXISTS migration_room_messages_game ON migration_room_messages(game_id, id)'
       ).run();
+      await db.prepare(
+        'CREATE TABLE IF NOT EXISTS migration_room_boards (' +
+        'game_id TEXT PRIMARY KEY NOT NULL REFERENCES games(id) ON DELETE CASCADE, ' +
+        'map TEXT NOT NULL, updated_at TEXT NOT NULL)'
+      ).run();
     })().catch(error => {
-      messageSchemas.delete(db);
+      roomSchemas.delete(db);
       throw error;
     });
-    messageSchemas.set(db, initialization);
+    roomSchemas.set(db, initialization);
   }
-  return messageSchemas.get(db);
+  return roomSchemas.get(db);
 }
 
 async function roomMessages(request, db, user, gameId) {
@@ -99,7 +104,7 @@ async function roomMessages(request, db, user, gameId) {
   ).bind(gameId, user.id).first();
   if (!membership) return json({error: 'Кімнату не знайдено.'}, 404);
 
-  await ensureMessageSchema(db);
+  await ensureRoomSchema(db);
 
   if (request.method === 'GET') {
     const {results} = await db.prepare(
@@ -125,6 +130,38 @@ async function roomMessages(request, db, user, gameId) {
     'WHERE target.game_id = own.game_id AND target.user_id = ? AND target.user_id <> own.user_id))'
   ).bind(recipient, body, gameId, user.id, recipient, recipient).run();
   return result.meta.changes ? json({sent: true}, 201) : json({error: 'Одержувача не знайдено.'}, 404);
+}
+
+async function roomBoard(request, db, user, gameId) {
+  const member = await db.prepare('SELECT role FROM game_members WHERE game_id = ? AND user_id = ?')
+    .bind(gameId, user.id).first();
+  if (!member) return json({error: 'Кімнату не знайдено.'}, 404);
+  if (request.method === 'POST' && member.role !== 'keeper') {
+    return json({error: 'Карту може додати ведучий кімнати.'}, 403);
+  }
+  await ensureRoomSchema(db);
+  if (request.method === 'GET') {
+    const row = await db.prepare('SELECT updated_at FROM migration_room_boards WHERE game_id = ?')
+      .bind(gameId).first();
+    if (!row) return json({map: null});
+    const known = new URL(request.url).searchParams.get('known');
+    if (known === row.updated_at) return json({updated: row.updated_at});
+    const map = await db.prepare('SELECT map, updated_at FROM migration_room_boards WHERE game_id = ?')
+      .bind(gameId).first();
+    return json({map: map?.map ?? null, updated: map?.updated_at});
+  }
+
+  const data = await request.json().catch(() => null);
+  const map = data?.map;
+  if (typeof map !== 'string' || map.length > 800000 || !/^UklGR[A-Za-z0-9+/]+={0,2}$/.test(map)) {
+    return json({error: 'Не вдалося підготувати зображення карти.'}, 400);
+  }
+  const updated = crypto.randomUUID();
+  await db.prepare(
+    'INSERT INTO migration_room_boards (game_id, map, updated_at) VALUES (?, ?, ?) ' +
+    'ON CONFLICT(game_id) DO UPDATE SET map = excluded.map, updated_at = excluded.updated_at'
+  ).bind(gameId, map, updated).run();
+  return json({map, updated});
 }
 
 async function adminOverview(db, user) {
@@ -158,6 +195,10 @@ export async function handleRooms(request, db, url) {
     const messageRoom = /^([a-f0-9-]{36})\/messages$/.exec(url.pathname.slice(route.length + 1));
     if (messageRoom && (request.method === 'GET' || request.method === 'POST')) {
       return await roomMessages(request, db, user, messageRoom[1]);
+    }
+    const boardRoom = /^([a-f0-9-]{36})\/board$/.exec(url.pathname.slice(route.length + 1));
+    if (boardRoom && (request.method === 'GET' || request.method === 'POST')) {
+      return await roomBoard(request, db, user, boardRoom[1]);
     }
     if (request.method === 'GET') {
       if (url.pathname === route) return await listRooms(db, user);
