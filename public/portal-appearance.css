@@ -326,3 +326,5 @@ body[data-theme]::after{position:fixed}
 body[data-live-background=off]::after,.appearance-preview[data-live-background=off]::after{animation:none;transform:none;opacity:.15}
 @keyframes portal-light{from{transform:translate3d(-2%,0,0);opacity:.18}to{transform:translate3d(2%,-2%,0);opacity:.36}}
 @media(prefers-reduced-motion:reduce){body[data-theme]::after,.appearance-preview[data-theme]::after{animation:none!important;transform:none!important}}
+
+.appearance-preview[data-palette]{--accent-ink:#101713}

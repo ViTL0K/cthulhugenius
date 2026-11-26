@@ -14,7 +14,7 @@ test('custom colors persist after reload, follow the palette fields and can be r
  const storage=new Map(),ui=screen(storage),form=ui.form();const fields=[...form.querySelectorAll('input[type=color]')];
  fields[0].value='#faf4df';fields[1].value='#183b2d';fields[2].value='#ff7a1a';form.querySelector('input[type=checkbox]').checked=true;
  form.dispatchEvent(new ui.window.Event('submit',{cancelable:true}));
- assert.equal(ui.document.body.style.getPropertyValue('--bg'),'#faf4df');assert.equal(ui.document.body.style.getPropertyValue('--gold'),'#ff7a1a');assert.equal(ui.document.body.style.getPropertyValue('--ink'),'#f4f1e7');assert.equal(ui.document.body.style.getPropertyValue('--base-ink'),'#101613');
+ assert.equal(ui.document.body.style.getPropertyValue('--bg'),'#faf4df');assert.equal(ui.document.body.style.getPropertyValue('--surface-dark'),'#faf4df');assert.equal(ui.document.body.style.getPropertyValue('--wash-dark'),'#faf4dfdd');assert.equal(ui.document.body.style.getPropertyValue('--gold'),'#ff7a1a');assert.equal(ui.document.body.style.getPropertyValue('--ink'),'#f4f1e7');assert.equal(ui.document.body.style.getPropertyValue('--base-ink'),'#101613');
  const next=screen(storage);assert.equal(next.document.body.style.getPropertyValue('--gold'),'#ff7a1a');
  const nextForm=next.form();nextForm.querySelector('input[type=checkbox]').checked=false;nextForm.dispatchEvent(new next.window.Event('submit'));
  assert.equal(storage.has('cth-portal-colors'),false);assert.equal(next.document.body.getAttribute('data-custom-colors'),null);assert.ok(!next.document.body.style.getPropertyValue('--gold'));

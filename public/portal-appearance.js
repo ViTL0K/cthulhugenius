@@ -6,8 +6,8 @@
  const luminance=hex=>rgb(hex).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
  const ink=hex=>luminance(hex)>.179?'#101613':'#f4f1e7';
  const mix=(a,b,t)=>'#'+rgb(a).map((v,i)=>Math.round(v*(1-t)+rgb(b)[i]*t).toString(16).padStart(2,'0')).join('');
- function apply(colors){const body=document.body;const vars=['--bg','--panel','--panel2','--line','--ink','--muted','--gold','--gold2','--accent-ink','--base-ink'];if(!colors){delete body.dataset.customColors;vars.forEach(k=>body.style.removeProperty(k));return;}
-  body.dataset.customColors='true';const values={'--bg':colors.background,'--panel':colors.surface,'--panel2':mix(colors.surface,ink(colors.surface),.055),'--line':mix(colors.surface,colors.accent,.42),'--ink':ink(colors.surface),'--muted':mix(colors.surface,ink(colors.surface),.72),'--gold':colors.accent,'--gold2':colors.accent,'--accent-ink':ink(colors.accent),'--base-ink':ink(colors.background)};
+ function apply(colors){const body=document.body;const vars=['--bg','--panel','--panel2','--line','--ink','--muted','--gold','--gold2','--accent-ink','--base-ink','--surface-dark','--surface-light','--wash-light','--wash-dark'];if(!colors){delete body.dataset.customColors;vars.forEach(k=>body.style.removeProperty(k));return;}
+  body.dataset.customColors='true';const values={'--bg':colors.background,'--panel':colors.surface,'--panel2':mix(colors.surface,ink(colors.surface),.055),'--line':mix(colors.surface,colors.accent,.42),'--ink':ink(colors.surface),'--muted':mix(colors.surface,ink(colors.surface),.72),'--gold':colors.accent,'--gold2':colors.accent,'--accent-ink':ink(colors.accent),'--base-ink':ink(colors.background),'--surface-dark':colors.background,'--surface-light':mix(colors.background,colors.surface,.6),'--wash-light':mix(colors.background,colors.surface,.6)+'bb','--wash-dark':colors.background+'dd'};
   for(const [name,value]of Object.entries(values))body.style.setProperty(name,value);
  }
  apply(saved);try{document.body.dataset.liveBackground=localStorage.getItem('cth-live-background')==='off'?'off':'on';}catch{document.body.dataset.liveBackground='on';}
