@@ -1,3 +1,4 @@
+import { normalizeAudioCommand } from './room-audio-state.mjs';
 import { handleMaterialLibrary, libraryFileAccess, ensureMaterialLibrary } from './material-library.mjs';
 import { accountRole } from './site-account.mjs';
 import { sessionUser } from './google-auth.mjs';
@@ -240,13 +241,22 @@ async function realtime(ctx,request,input){
     if(!input.event||typeof input.event!=='string'||JSON.stringify(input.payload).length>900000)fail('Некоректна подія.');
     if(['scene-marker','audio-state'].includes(input.event))access(ctx,game,true);
     if(input.event==='participant-photo'&&input.payload?.user_id!==ctx.user.id)access(ctx,game,true);
-    await put(ctx,'broadcasts',{game_id:game,event:input.event,payload:input.payload,created_at:now(),sender_id:ctx.user.id});return {status:'ok'};
+    let payload=input.payload;
+    if(input.event==='audio-state'){
+      const current=(await raw(ctx,'room_audio',game))[0]?.payload;
+      try{payload=normalizeAudioCommand(input.payload,ctx.user.id,Math.max(Date.now(),(current?.sent_at||0)+1));}catch(error){fail(error.message);}
+      if(payload.recipient){const target=await ctx.db.prepare('SELECT user_id FROM game_members WHERE game_id=? AND user_id=?').bind(game,payload.recipient).first();if(!target)fail('Одержувача немає в кімнаті.');}
+      if(!payload.recipient&&['play','pause','seek','stop'].includes(payload.action))await put(ctx,'room_audio',{game_id:game,payload,created_at:now()},game);
+      if(!payload.recipient&&payload.action==='remove'&&current?.track?.id===payload.track.id&&current?.track?.kind===payload.track.kind)await put(ctx,'room_audio',{game_id:game,payload,created_at:now()},game);
+    }
+    await put(ctx,'broadcasts',{game_id:game,event:input.event,payload,created_at:now(),sender_id:ctx.user.id});return {status:'ok'};
   }
   if(input.action==='track'){
     await put(ctx,'presence',{game_id:game,payload:{...input.payload,user_id:ctx.user.id},created_at:now()},game+':'+ctx.user.id);return {status:'ok'};
   }
   const result={};
   for(const table of input.tables||[])if(tables.has(table))result[table]=(await rows(ctx,table)).filter(r=>r.game_id===game);
+  result.audioState=(await raw(ctx,'room_audio',game))[0]?.payload||null;
   result.broadcasts=(await raw(ctx,'broadcasts',game)).filter(r=>visible(ctx,'broadcasts',r));
   result.presence=(await raw(ctx,'presence',game)).filter(r=>visible(ctx,'presence',r));
   // Bound transient storage; persistent game history is untouched.

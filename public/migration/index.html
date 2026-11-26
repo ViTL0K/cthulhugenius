@@ -306,8 +306,9 @@ body:has(#roomView.active){overflow:hidden}
 <link rel="stylesheet" href="/migration-restored.css?v=95">
 <link rel="icon" href="/favicon.ico?v=97" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=97"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=97">
 <link rel="stylesheet" href="/portal-fonts.css?v=99"><link rel="stylesheet" href="/material-library.css?v=99"><script defer src="/portal-fonts.js?v=99"></script>
-<link rel="stylesheet" href="/portal-appearance.css?v=99"><script defer src="/portal-appearance.js?v=99"></script>
+<link rel="stylesheet" href="/portal-appearance.css?v=100"><script defer src="/portal-appearance.js?v=100"></script>
 <link rel="stylesheet" href="/portal-tour.css?v=99"><script defer src="/portal-tour.js?v=99"></script>
+<link rel="stylesheet" href="/portal-room.css?v=100">
 </head>
 <body>
 <main class="app">
@@ -324,7 +325,7 @@ body:has(#roomView.active){overflow:hidden}
         <div class="field"><label for="playerEmail"><span data-ui-text="Електронна пошта">Електронна пошта</span></label><input id="playerEmail" name="email" type="email" placeholder="name@example.com" autocomplete="email" required></div>
         <div class="field"><label for="playerPassword"><span data-ui-text="Пароль">Пароль</span></label><input id="playerPassword" name="password" type="password" placeholder="Щонайменше 8 символів" data-ui-placeholder="Щонайменше 8 символів" autocomplete="current-password" required></div>
         <label class="remember-auth"><input id="rememberEmail" type="checkbox"> <span data-ui-text="Запам’ятати пошту на цьому пристрої">Запам’ятати пошту на цьому пристрої</span></label>
-        <div class="theme-select-card"><label for="entryThemeSelect"><span data-ui-text="Стиль сайту">Стиль сайту</span></label><select id="entryThemeSelect"><option value="default" data-ui-text="Без текстури">Без текстури</option><option value="stone" data-ui-text="Камінь">Камінь</option><option value="water" data-ui-text="Вода">Вода</option><option value="01_parchment_light" data-ui-text="Світлий пергамент">Світлий пергамент</option><option value="02_aged_paper" data-ui-text="Старий папір">Старий папір</option><option value="03_dark_slate" data-ui-text="Темний сланець">Темний сланець</option><option value="04_old_plaster" data-ui-text="Стара штукатурка">Стара штукатурка</option><option value="05_brick_wall" data-ui-text="Цегла">Цегла</option><option value="06_frosted_glass" data-ui-text="Матове скло">Матове скло</option><option value="07_brushed_metal" data-ui-text="Шліфований метал">Шліфований метал</option><option value="08_wet_stone" data-ui-text="Мокрий камінь">Мокрий камінь</option><option value="09_walnut_table" data-ui-text="Горіхова дошка">Горіхова дошка</option><option value="10_oak_table" data-ui-text="Дубова дошка">Дубова дошка</option></select></div>
+        <div class="theme-select-card"><label for="entryThemeSelect"><span data-ui-text="Стиль сайту">Стиль сайту</span></label><select id="entryThemeSelect"><option value="stone" data-ui-text="Камінь">Камінь</option><option value="02_aged_paper" data-ui-text="Старий папір">Старий папір</option><option value="04_old_plaster" data-ui-text="Стара штукатурка">Стара штукатурка</option><option value="05_brick_wall" data-ui-text="Цегла">Цегла</option><option value="09_walnut_table" data-ui-text="Горіхова дошка">Горіхова дошка</option><option value="10_oak_table" data-ui-text="Дубова дошка">Дубова дошка</option><option value="mythos-tentacles" data-ui-text="Щупальця з безодні">Щупальця з безодні</option><option value="mythos-runes" data-ui-text="Древні руни та печатки">Древні руни та печатки</option><option value="mythos-fog" data-ui-text="Аркхемський туман">Аркхемський туман</option><option value="mythos-depths" data-ui-text="Морська безодня Р’льєха">Морська безодня Р’льєха</option></select></div>
         <button class="btn primary" id="signInButton" type="submit">Увійти до порталу <span aria-hidden="true">→</span></button>
         <button class="btn" id="signUpButton" type="button" data-action="sign-up">Створити акаунт</button>
         <p id="entryError" class="small" hidden style="color:var(--red);margin:8px 0"></p>
@@ -370,7 +371,7 @@ body:has(#roomView.active){overflow:hidden}
         <button class="room-sheet-tab" id="mySheetTab" type="button" data-action="my-sheet-tab" aria-haspopup="dialog" hidden><span data-ui-text="Мій лист">Мій лист</span></button>
         <div class="map-staging"><button type="button" id="pastMaterials" class="chat-target"><span data-ui-text="Минулі матеріали">Минулі матеріали</span></button><span id="materialShelfLabel">Приховані матеріали</span> · <b id="stagedCount">0</b><br><button class="chat-target" data-action="clues" id="materialShelfButton">Відкрити →</button></div><input id="uploadInput" class="scene-upload" type="file" multiple accept="image/*,.pdf,.png,.jpg,.jpeg,.webp">
       </div></section>
-      <aside class="toolbox"><h3><span data-ui-text="Інструменти">Інструменти</span></h3><div class="tool-group player-only"><span data-ui-text="Дослідник">Дослідник</span></div><button class="tool-btn player-only" data-action="sheet"><span>♙</span> <span data-ui-text="Лист персонажа">Лист персонажа</span></button><button class="tool-btn player-only" data-action="rules"><span>⌘</span> <span data-ui-text="Правила гри">Правила гри</span></button><div class="tool-group keeper-only"><span data-ui-text="Ведучий">Ведучий</span></div><button class="tool-btn keeper-only" hidden data-action="notes"><span>▧</span> <span data-ui-text="Мої нотатки">Мої нотатки</span> <span id="noteCount" class="count">0</span></button><button class="tool-btn keeper-only" data-action="edit-member-sheets"><span>▤</span> <span data-ui-text="Листи персонажів гравців">Листи персонажів гравців</span></button><button class="tool-btn keeper-only" data-action="adventure-pdfs"><span>▧</span> <span data-ui-text="Завантажені файли">Завантажені файли</span></button><div class="tool-group"><span data-ui-text="Сесія">Сесія</span></div><button class="tool-btn" data-action="game-info"><span>▤</span> <span data-ui-text="Інформація про гру">Інформація про гру</span></button><button class="tool-btn" data-action="clues"><span>✉</span> <span id="clueToolLabel">Підказки</span> <span id="clueCount" class="count">0</span></button><details class="dice-panel" id="dicePanel" open><summary><span>⚄</span> <span data-ui-text="Кидки кубиків">Кидки кубиків</span></summary><div class="dice-dock"><div class="dice-controls"><input id="diceCount" type="number" min="1" max="20" value="1" aria-label="Кількість кубиків" data-ui-aria-label="Кількість кубиків"><select id="diceSides" aria-label="Тип кубика" data-ui-aria-label="Тип кубика"><option value="100">К100</option><option value="20">К20</option><option value="12">К12</option><option value="10">К10</option><option value="8">К8</option><option value="6">К6</option><option value="4">К4</option></select><label class="dice-mode" id="rollModeLabel"><span data-ui-text="Результат">Результат</span><select id="rollMode"><option value="keeper" data-ui-text="Кидок ведучому">Кидок ведучому</option><option value="all" data-ui-text="Показати всім">Показати всім</option></select></label><button class="btn primary dice-roll-btn" data-action="scene-roll"><span data-ui-text="Кинути">Кинути</span></button></div><div id="sceneDiceResult" class="dice-result"></div></div></details><details class="audio-panel" id="audioPanel" open><summary>♫ <span data-ui-text="Аудіомікшер">Аудіомікшер</span></summary><div class="audio-panel-body"><div id="spotifyPlayerHost" hidden></div><div id="youtubePlayerHost" class="audio-engine" aria-hidden="true"></div><p id="audioStatus" class="audio-status" data-ui-text="Додай посилання на YouTube, YouTube Music або Spotify.">Додай посилання на YouTube, YouTube Music або Spotify.</p><div class="audio-controls"><button class="btn" type="button" data-action="audio-previous" title="Попередній трек" data-ui-title="Попередній трек">◀</button><button class="btn primary" type="button" data-action="audio-toggle" id="audioToggle">▶ Відтворити</button><button class="btn" type="button" data-action="audio-next" title="Наступний трек" data-ui-title="Наступний трек">▶|</button></div><label class="audio-volume-label"><span data-ui-text="Гучність">Гучність</span> <input id="audioVolume" type="range" min="0" max="100" value="50" aria-label="Гучність музики" data-ui-aria-label="Гучність музики"><span id="audioVolumeValue">50%</span></label><form id="audioTrackForm" class="audio-add-form"><input id="audioTrackUrl" type="url" placeholder="Посилання YouTube або Spotify" data-ui-placeholder="Посилання YouTube або Spotify" required><input id="audioTrackName" type="text" maxlength="60" placeholder="Назва (необов’язково)" data-ui-placeholder="Назва (необов’язково)"><button class="btn" type="submit"><span data-ui-text="Додати">Додати</span></button></form><button class="btn" type="button" id="audioListenHere" hidden></button><div id="audioTrackList" class="audio-track-list"></div></div></details></aside>
+      <aside class="toolbox"><h3><span data-ui-text="Інструменти">Інструменти</span></h3><div class="tool-group player-only"><span data-ui-text="Дослідник">Дослідник</span></div><button class="tool-btn player-only" data-action="sheet"><span>♙</span> <span data-ui-text="Лист персонажа">Лист персонажа</span></button><button class="tool-btn player-only" data-action="rules"><span>⌘</span> <span data-ui-text="Правила гри">Правила гри</span></button><div class="tool-group keeper-only"><span data-ui-text="Ведучий">Ведучий</span></div><button class="tool-btn keeper-only" hidden data-action="notes"><span>▧</span> <span data-ui-text="Мої нотатки">Мої нотатки</span> <span id="noteCount" class="count">0</span></button><button class="tool-btn keeper-only" data-action="edit-member-sheets"><span>▤</span> <span data-ui-text="Листи персонажів гравців">Листи персонажів гравців</span></button><button class="tool-btn keeper-only" data-action="adventure-pdfs"><span>▧</span> <span data-ui-text="Завантажені файли">Завантажені файли</span></button><div class="tool-group"><span data-ui-text="Сесія">Сесія</span></div><button class="tool-btn" data-action="game-info"><span>▤</span> <span data-ui-text="Інформація про гру">Інформація про гру</span></button><button class="tool-btn" data-action="clues"><span>✉</span> <span id="clueToolLabel">Підказки</span> <span id="clueCount" class="count">0</span></button><details class="dice-panel" id="dicePanel" open><summary><span>⚄</span> <span data-ui-text="Кидки кубиків">Кидки кубиків</span></summary><div class="dice-dock"><div class="dice-controls"><input id="diceCount" type="number" min="1" max="20" value="1" aria-label="Кількість кубиків" data-ui-aria-label="Кількість кубиків"><select id="diceSides" aria-label="Тип кубика" data-ui-aria-label="Тип кубика"><option value="100">К100</option><option value="20">К20</option><option value="12">К12</option><option value="10">К10</option><option value="8">К8</option><option value="6">К6</option><option value="4">К4</option></select><label class="dice-mode" id="rollModeLabel"><span data-ui-text="Результат">Результат</span><select id="rollMode"><option value="keeper" data-ui-text="Кидок ведучому">Кидок ведучому</option><option value="all" data-ui-text="Показати всім">Показати всім</option></select></label><button class="btn primary dice-roll-btn" data-action="scene-roll"><span data-ui-text="Кинути">Кинути</span></button></div><div id="sceneDiceResult" class="dice-result"></div></div></details><details class="audio-panel" id="audioPanel" open><summary>♫ <span data-ui-text="Аудіомікшер">Аудіомікшер</span></summary><div class="audio-panel-body"><div id="spotifyPlayerHost" hidden></div><div id="youtubePlayerHost" class="audio-engine" aria-hidden="true"></div><p id="audioStatus" class="audio-status" data-ui-text="Додай посилання на YouTube, YouTube Music або Spotify.">Додай посилання на YouTube, YouTube Music або Spotify.</p><div class="audio-controls"><button class="btn" type="button" data-action="audio-previous" title="Попередній трек" data-ui-title="Попередній трек">◀</button><button class="btn primary" type="button" data-action="audio-toggle" id="audioToggle">▶ Відтворити</button><button class="btn" type="button" data-action="audio-next" title="Наступний трек" data-ui-title="Наступний трек">▶|</button></div><div class="audio-timeline"><input id="audioSeek" type="range" min="0" max="1" value="0" step="0.1" disabled aria-label="Позиція аудіотреку"><output id="audioTime" for="audioSeek">00:00 / --:--</output></div><label class="audio-volume-label"><span data-ui-text="Гучність">Гучність</span> <input id="audioVolume" type="range" min="0" max="100" value="50" aria-label="Гучність музики" data-ui-aria-label="Гучність музики"><span id="audioVolumeValue">50%</span></label><form id="audioTrackForm" class="audio-add-form"><input id="audioTrackUrl" type="url" placeholder="Посилання YouTube або Spotify" data-ui-placeholder="Посилання YouTube або Spotify" required><input id="audioTrackName" type="text" maxlength="60" placeholder="Назва (необов’язково)" data-ui-placeholder="Назва (необов’язково)"><button class="btn" type="submit"><span data-ui-text="Додати">Додати</span></button></form><button class="btn" type="button" id="audioListenHere" hidden></button><div id="audioTrackList" class="audio-track-list"></div></div></details></aside>
       <section class="room-chat"><div class="chatbox"><div class="chat-head"><h3><span data-ui-text="Спільний чат">Спільний чат</span></h3><span class="pill"><span data-ui-text="Усі учасники">Усі учасники</span></span><button type="button" class="btn chat-toggle" data-chat-toggle="public" aria-expanded="true" aria-controls="publicLog publicComposer">⌄</button></div><div id="publicLog" class="chat-log"><div class="message system">Кімнату відкрито. Матеріали з’являються тут для всіх.</div><div class="message"><strong>Віталій</strong><span class="time">20:06</span><br>Пором прибуває до острова за годину до сутінків.</div><div class="message diceroll"><strong>Кидок · Віталій</strong><br>Спостережливість: <b>42</b> проти 55 — успіх.</div></div><form class="chat-compose" data-chat="public" id="publicComposer"><input placeholder="Написати повідомлення…" data-ui-placeholder="Написати повідомлення…" aria-label="Повідомлення у спільний чат" data-ui-aria-label="Повідомлення у спільний чат"><button class="btn" type="submit"><span data-ui-text="Надіслати">Надіслати</span></button></form></div><div class="chatbox private"><div class="chat-head"><h3><span data-ui-text="Особистий чат">Особистий чат</span></h3><label class="chat-target"><span data-ui-text="Кому:">Кому:</span> <select id="privateRecipient" aria-label="Одержувач особистого чату" data-ui-aria-label="Одержувач особистого чату"></select></label><button type="button" class="btn chat-toggle" data-chat-toggle="private" aria-expanded="true" aria-controls="privateLog privateComposer">⌄</button></div><div id="privateLog" class="chat-log"><div class="message system"><span data-ui-text="Вибери учасника, якому хочеш написати.">Вибери учасника, якому хочеш написати.</span></div></div><form class="chat-compose" data-chat="private" id="privateComposer"><input placeholder="Приватне повідомлення…" data-ui-placeholder="Приватне повідомлення…" aria-label="Приватне повідомлення" data-ui-aria-label="Приватне повідомлення"><button class="btn" type="submit"><span data-ui-text="Надіслати">Надіслати</span></button></form></div></section>
     </div>
   </section>
@@ -388,9 +389,10 @@ body:has(#roomView.active){overflow:hidden}
 window.__cthEntryReady=false;
 document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__cthEntryReady){e.preventDefault();const box=document.querySelector('#entryError');if(box){box.textContent='Модуль входу ще не завантажився. Онови сторінку; якщо повідомлення повториться, надішли цей текст.';box.hidden=false}}},true);
 </script>
-<script src="/migration-client.js?v=95"></script>
+<script src="/migration-client.js?v=100"></script>
 <script src="/portal-rules.js?v=52"></script>
 <script src="/material-library.js?v=99.1"></script>
+<script src="/audio-timeline.js?v=100"></script>
 <script>
 (()=>{
   const supabase=window.supabase;
@@ -399,7 +401,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   const readJSON=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}};
   const legacyScenes=readJSON('cth-scenes',[{name:'Дошка',cards:[]},{name:'Сцена 2',cards:[]},{name:'Чистий фон',cards:[]}]);
   const legacyClues=readJSON('cth-clues',[]);
-  const state={name:localStorage.getItem('cth-name')||'',email:localStorage.getItem('cth-email')||'',role:'player',accountRole:'player',code:localStorage.getItem('cth-code')||'CTH-1926',zoom:1,theme:localStorage.getItem('cth-theme')||'default',palette:localStorage.getItem('cth-palette')||'night',activeScene:0,scenes:legacyScenes,clues:legacyClues,notes:readJSON('cth-notes',[]),rolls:readJSON('cth-rolls',[]),games:readJSON('cth-games',[]),gameId:localStorage.getItem('cth-game-id')||'',pendingClueFile:null,cloud:true,userId:null,roomSub:null,preparedSheetSub:null,saveTimer:null,remoteRefresh:false,members:[],messages:[],presence:{},sheetOwnerId:null,activePreparedSheetId:'',markerChannel:null,markerSymbol:"",markerCooldownUntil:0,markerCooldownTimer:null,audioTracks:readJSON('cth-audio-tracks',[]),audioIndex:-1,audioPlayer:null,audioPendingTrack:null,audioApiPromise:null,audioVolume:Number(localStorage.getItem('cth-audio-volume')||50),audioSharedTrack:null,audioPlaying:false};
+  const state={name:localStorage.getItem('cth-name')||'',email:localStorage.getItem('cth-email')||'',role:'player',accountRole:'player',code:localStorage.getItem('cth-code')||'CTH-1926',zoom:1,theme:localStorage.getItem('cth-theme')||'stone',palette:localStorage.getItem('cth-palette')||'night',activeScene:0,scenes:legacyScenes,clues:legacyClues,notes:readJSON('cth-notes',[]),rolls:readJSON('cth-rolls',[]),games:readJSON('cth-games',[]),gameId:localStorage.getItem('cth-game-id')||'',pendingClueFile:null,cloud:true,userId:null,roomSub:null,preparedSheetSub:null,saveTimer:null,remoteRefresh:false,members:[],messages:[],presence:{},sheetOwnerId:null,activePreparedSheetId:'',markerChannel:null,markerSymbol:"",markerCooldownUntil:0,markerCooldownTimer:null,audioTracks:readJSON('cth-audio-tracks',[]),audioIndex:-1,audioPlayer:null,audioPendingTrack:null,audioApiPromise:null,audioVolume:Number(localStorage.getItem('cth-audio-volume')||50),audioSharedTrack:null,audioPlaying:false};
   if(!state.games.length){state.games=[{id:'north-archive',title:'Північний архів',code:localStorage.getItem('cth-code')||'CTH-1926',description:'Поточна пригода',scenes:legacyScenes,clues:legacyClues}];state.gameId='north-archive';safeStore('cth-games',JSON.stringify(state.games));safeStore('cth-game-id',state.gameId)}
   let activeGame=state.games.find(g=>g.id===state.gameId)||state.games[0];state.gameId=activeGame.id;state.scenes=activeGame.scenes||legacyScenes;state.clues=activeGame.clues||legacyClues;state.code=activeGame.code||state.code;
   let directCursor=0,directGeneration=0,privateView='';
@@ -772,7 +774,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
   function applyTheme(value){
     const selector=$('#entryThemeSelect');
-    const theme=[...selector.options].some(option=>option.value===value)?value:'default';
+    const theme=[...selector.options].some(option=>option.value===value)?value:'stone';
     document.body.dataset.theme=theme;
     selector.value=theme;
     state.theme=theme;
@@ -1423,7 +1425,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     await flushSceneSave();
     if(!current())return;
     pauseRoomAudio(false);
-    state.audioSharedTrack=null;state.audioController=null;state.audioPosition=0;state.audioCommandAt=0;
+    audioTimeline.reset();state.audioSharedTrack=null;state.audioController=null;state.audioPosition=0;state.audioCommandAt=0;state.audioLastCommand='';
     state.audioTracks=readJSON('cth-audio-tracks:'+gameId,[]);state.audioIndex=-1;renderAudioTrackList();
 
     const signal=AbortSignal.timeout(12000);
@@ -1504,8 +1506,8 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
       .on('broadcast',{event:'participant-name'},()=>{void refreshMemberNames();})
       .on('broadcast',{event:'audio-request'},({payload})=>{
         if(state.gameId!==gameId||!state.audioSharedTrack||state.audioController!==state.userId)return;
-        const track=state.audioSharedTrack;
-        const position=state.audioPlaying?Math.max(0,(Date.now()-track.startedAt)/1000):state.audioPosition;
+        const track=audioTimeline.snapshot();
+        const position=track.position;
         sendRoomAudio(state.audioPlaying?'play':'pause',{...track,position},payload?.user_id);
       })
       .on('broadcast',{event:'participant-photo'},({payload})=>{if(state.gameId===gameId)receiveParticipant(payload)})
@@ -2530,64 +2532,56 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   function parseYouTubeTrack(raw,label=''){
     let url;try{url=new URL(raw.trim())}catch{return null}
     const host=url.hostname.toLowerCase().replace(/^www\./,'');
-    if(['open.spotify.com'].includes(host)){const match=url.pathname.match(/^\/(?:embed\/)?(track|playlist|album)\/([A-Za-z0-9]+)\/?$/);if(!match)return null;return{kind:'spotify',spotifyType:match[1],id:match[2],url:url.href,label:label.trim()||'Spotify · '+match[1]}}
+    if(['open.spotify.com'].includes(host)){const match=url.pathname.match(/^\/(?:embed\/)?(track|playlist|album|episode)\/([A-Za-z0-9]+)\/?$/);if(!match)return null;return{kind:'spotify',spotifyType:match[1],id:match[2],url:url.href,label:label.trim()||'Spotify · '+match[1]}}
     if(!['youtube.com','m.youtube.com','music.youtube.com','youtu.be'].includes(host))return null;
     const list=url.searchParams.get('list')||'',video=host==='youtu.be'?url.pathname.split('/').filter(Boolean)[0]||'':url.searchParams.get('v')||url.pathname.match(/\/(?:embed|shorts|live)\/([^/?]+)/)?.[1]||'';
     if(list&&/^[\w-]{10,}$/.test(list))return{kind:'playlist',id:list,url:url.href,label:label.trim()||'YouTube · плейлист'};
     if(video&&/^[\w-]{11}$/.test(video))return{kind:'video',id:video,url:url.href,label:label.trim()||'YouTube · трек'};
     return null;
   }
+  const audioTimeline=window.createAudioTimeline({state,$,send:(...args)=>sendRoomAudio(...args),status:text=>setAudioStatus(text),loadTrack:(...args)=>playTrackLocally(...args)});
   function saveAudioTracks(){safeStore('cth-audio-tracks:'+state.gameId,JSON.stringify(state.audioTracks))}
   function renderAudioTrackList(){const box=$('#audioTrackList');if(!box)return;box.innerHTML=state.audioTracks.length?state.audioTracks.map((track,i)=>'<div class="audio-track-row '+(i===state.audioIndex?'active':'')+'"><span title="'+esc(track.label)+'">'+esc(track.label)+'</span><button type="button" class="play" data-action="audio-play-track" data-audio-index="'+i+'" aria-label="Відтворити трек" title="Відтворити цей трек">▶</button><button type="button" class="remove" data-action="audio-remove-track" data-audio-index="'+i+'" title="Видалити трек">×</button></div>').join(''):'<p class="audio-note">'+uiText('Список порожній. Додай посилання на YouTube або Spotify.')+'</p>'}
   function setAudioStatus(text){const el=$('#audioStatus');if(el){delete el.dataset.uiText;el.textContent=text}}
   function loadYouTubeApi(){if(window.YT?.Player)return Promise.resolve(window.YT);if(state.audioApiPromise)return state.audioApiPromise;state.audioApiPromise=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('YouTube плеєр не завантажився. Перевір підключення.')),15000);const previous=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{clearTimeout(timer);if(typeof previous==='function')previous();resolve(window.YT)};let script=document.querySelector('script[data-youtube-iframe-api]');if(!script){script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.async=true;script.dataset.youtubeIframeApi='true';script.onerror=()=>{clearTimeout(timer);reject(new Error('Не вдалося завантажити YouTube плеєр.'))};document.head.append(script)}});return state.audioApiPromise}
   function applyAudioVolume(){const value=Math.max(0,Math.min(100,Number($('#audioVolume')?.value??state.audioVolume)));state.audioVolume=value;safeStore('cth-audio-volume',String(value));if($('#audioVolumeValue'))$('#audioVolumeValue').textContent=value+'%';if(state.audioPlayer){if(value===0)state.audioPlayer.mute();else{state.audioPlayer.unMute();state.audioPlayer.setVolume(value)}}}
   function sendRoomAudio(action,track,recipient){
-    if(!state.roomSub)return;
-    const sentAt=Date.now();
-    if(!recipient&&['play','pause','stop','remove'].includes(action)){
-      state.audioCommandAt=sentAt;
+    if(!state.roomSub||state.role!=='keeper')return;
+    const sentAt=Date.now(),command_id=crypto.randomUUID();if(!recipient)state.audioLastCommand=command_id;
+    if(!recipient&&['play','pause','seek','stop','remove'].includes(action)){
+      // The server stamps the command; local wall clocks may differ.
       if(action!=='remove')state.audioController=state.userId;
     }
+    state.audioPendingCommands=(state.audioPendingCommands||0)+1;const sendingGame=state.gameId;
     void state.roomSub.send({type:'broadcast',event:'audio-state',payload:{
-      action,track:track||state.audioSharedTrack||null,user_id:state.userId,sent_at:sentAt,recipient
-    }});
+      action,track:track||audioTimeline.snapshot(),user_id:state.userId,sent_at:sentAt,playing:!!state.audioPlaying,command_id,recipient
+    }}).then(result=>{if(result!=='ok'&&state.gameId===sendingGame)setAudioStatus('Не вдалося синхронізувати звук. Повтори дію.');}).catch(()=>{if(state.gameId===sendingGame)setAudioStatus('Не вдалося синхронізувати звук.');}).finally(()=>{state.audioPendingCommands=Math.max(0,(state.audioPendingCommands||0)-1);});
   }
   function showAudioRetry(visible){
     const button=$('#audioListenHere');
     button.hidden=!visible;
     button.textContent=uiText('Увімкнути звук у цьому браузері');
   }
-  function renderSpotifyTrack(track){
-    const host=$('#spotifyPlayerHost');
-    state.audioPlayer?.pauseVideo?.();
-    $('#audioVolume').disabled=true;
-    $('#audioVolumeValue').textContent='Spotify';
-    const src='https://open.spotify.com/embed/'+track.spotifyType+'/'+track.id+'?utm_source=generator&theme=0';
-    host.hidden=false;
-    host.innerHTML='<iframe class="spotify-audio-player" src="'+src+'" title="'+esc(track.label)+'" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>';
-    $('#youtubePlayerHost').hidden=true;
-    setAudioStatus(uiText('Для Spotify натисни ▶ у вбудованому плеєрі.'));
-  }
+  function renderSpotifyTrack(track){void audioTimeline.loadSpotify(track);}
   function cueYouTubeTrack(){
-    if(!state.audioPlaying||!state.audioPlayerReady||!state.audioPendingTrack)return;
+    if(!state.audioPlayerReady||!state.audioPendingTrack)return;
     const track=state.audioPendingTrack;
     state.audioPendingTrack=null;
-    $('#spotifyPlayerHost').hidden=true;
+    audioTimeline.stopSpotify();$('#spotifyPlayerHost').hidden=true;
     $('#spotifyPlayerHost').replaceChildren();
     $('#youtubePlayerHost').hidden=false;
     $('#audioVolume').disabled=false;
     applyAudioVolume();
-    const startSeconds=Math.max(0,(Date.now()-track.startedAt)/1000);
-    if(track.kind==='playlist')state.audioPlayer.loadPlaylist({list:track.id,listType:'playlist',index:0,startSeconds});
-    else state.audioPlayer.loadVideoById({videoId:track.id,startSeconds});
+    const startSeconds=state.audioPlaying?Math.max(0,(Date.now()-track.startedAt)/1000):Math.max(0,track.position||0);
+    if(track.kind==='playlist'){const args={list:track.id,listType:'playlist',index:track.playlistIndex||0,startSeconds};state.audioPlaying?state.audioPlayer.loadPlaylist(args):state.audioPlayer.cuePlaylist(args);}
+    else{const args={videoId:track.id,startSeconds};state.audioPlaying?state.audioPlayer.loadVideoById(args):state.audioPlayer.cueVideoById(args);}
   }
   function loadYTTrack(track){
     const request=state.audioRequest;
     state.audioPendingTrack=track;
     setAudioStatus(uiText('Завантажую трек')+': '+track.label);
     loadYouTubeApi().then(YT=>{
-      if(request!==state.audioRequest||!state.audioPlaying)return;
+      if(request!==state.audioRequest)return;
       if(state.audioPlayer){cueYouTubeTrack();return}
       state.audioPlayer=new YT.Player('youtubePlayerHost',{
         width:200,height:200,playerVars:{playsinline:1,controls:0,rel:0,origin:location.origin},
@@ -2617,30 +2611,34 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
       });
     }).catch(error=>{if(request===state.audioRequest)setAudioStatus(error.message)});
   }
-  function playTrackLocally(track,startAt=0,share=false){if(!track)return;state.audioRequest=(state.audioRequest||0)+1;state.audioPlaying=true;state.audioSharedTrack={...track,position:startAt};state.audioSharedTrack.startedAt=Date.now()-startAt*1000;showAudioRetry(false);$('#audioToggle').textContent='⏸ '+uiText('Пауза');if(track.kind==='spotify')renderSpotifyTrack(track);else loadYTTrack(state.audioSharedTrack);if(share)sendRoomAudio('play',state.audioSharedTrack)}
+  function playTrackLocally(track,startAt=0,share=false,playing=true){if(!track)return;audioTimeline.resetPosition();state.audioPosition=startAt;state.audioRequest=(state.audioRequest||0)+1;state.audioPlaying=playing;state.audioSharedTrack={...track,position:startAt};state.audioSharedTrack.startedAt=Date.now()-startAt*1000;showAudioRetry(false);$('#audioToggle').textContent=(playing?'⏸ ':'▶ ')+uiText(playing?'Пауза':'Відтворити');if(track.kind==='spotify')renderSpotifyTrack(state.audioSharedTrack);else loadYTTrack(state.audioSharedTrack);if(share)sendRoomAudio('play',state.audioSharedTrack)}
   function playCurrentAudio(){const track=state.audioTracks[state.audioIndex];if(!track)return;playTrackLocally(track,0,true);renderAudioTrackList()}
   function playAudioAt(index){if(!state.audioTracks.length){setAudioStatus('Спочатку додай посилання на YouTube або Spotify.');return}state.audioPosition=0;state.audioIndex=(index+state.audioTracks.length)%state.audioTracks.length;playCurrentAudio()}
   function nextAudioTrack(step){if(!state.audioTracks.length)return;playAudioAt((state.audioIndex+step+state.audioTracks.length)%state.audioTracks.length)}
   function pauseRoomAudio(share=true){
     state.audioRequest=(state.audioRequest||0)+1;
     state.audioPendingTrack=null;
-    state.audioPosition=state.audioPlayer?.getCurrentTime?.()||state.audioPosition||0;
+    state.audioPosition=audioTimeline.position();
     state.audioPlaying=false;
     showAudioRetry(false);
     state.audioPlayer?.pauseVideo?.();
-    if($('#spotifyPlayerHost'))$('#spotifyPlayerHost').innerHTML='';
+    audioTimeline.pauseSpotify();
     $('#audioToggle').textContent='▶ '+uiText('Відтворити');
     setAudioStatus(uiText('На паузі'));
     if(share)sendRoomAudio('pause',{...state.audioSharedTrack,position:state.audioPosition});
   }
   async function receiveRoomAudio(payload,gameId=state.gameId){
-    if(!payload||payload.user_id===state.userId||(payload.recipient&&payload.recipient!==state.userId))return;
-    if(!state.members.some(m=>m.user_id===payload.user_id)){
+    if(!payload||payload.user_id===state.userId&&!payload.restore||(payload.recipient&&payload.recipient!==state.userId))return;
+    if(payload.restore&&payload.user_id===state.userId&&state.audioPendingCommands)return;
+    if(state.gameId!==gameId)return;
+    if(!state.members.some(m=>m.user_id===payload.user_id&&m.role==='keeper')){
       await refreshMemberNames();
-      if(state.gameId!==gameId||!state.members.some(m=>m.user_id===payload.user_id))return;
+      if(state.gameId!==gameId||!state.members.some(m=>m.user_id===payload.user_id&&m.role==='keeper'))return;
     }
     if(!Number.isFinite(payload.sent_at))return;
-    if(['play','pause','stop','remove'].includes(payload.action)){
+    if(payload.command_id&&payload.command_id===state.audioLastCommand){state.audioCommandAt=Math.max(state.audioCommandAt||0,payload.sent_at);return;}
+    if(payload.sent_at<(state.audioCommandAt||0))return;state.audioLastCommand=payload.command_id;
+    if(['play','pause','seek','stop','remove'].includes(payload.action)){
       if(payload.recipient&&state.audioController)return;
       if(payload.sent_at<(state.audioCommandAt||0))return;
       state.audioCommandAt=payload.sent_at;
@@ -2651,8 +2649,9 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
       }
       return;
     }
+    if(payload.action==='seek'&&payload.track){state.audioController=payload.user_id;const playing=payload.playing===true,position=(payload.track.position||0)+(playing?Math.max(0,(Date.now()-payload.sent_at)/1000):0);if(state.audioSharedTrack?.id===payload.track.id&&state.audioSharedTrack?.kind===payload.track.kind&&state.audioPlaying===playing&&(payload.track.kind!=='playlist'||(payload.track.playlistIndex||0)===(state.audioPlayer?.getPlaylistIndex?.()||0))){audioTimeline.seek(position,false);}else playTrackLocally(payload.track,position,false,playing);return;}
     if(payload.track&&['play','pause','stop'].includes(payload.action))state.audioSharedTrack=payload.track;
-    if(payload.action==='pause'||payload.action==='stop'){state.audioController=payload.user_id;pauseRoomAudio(false);state.audioPosition=payload.track?.position||0;return;}
+    if(payload.action==='pause'||payload.action==='stop'){state.audioController=payload.user_id;pauseRoomAudio(false);state.audioPosition=payload.track?.position||0;if(payload.track)playTrackLocally(payload.track,state.audioPosition,false,false);return;}
     if(payload.action==='remove'){
       const current=state.audioSharedTrack?.id===payload.track?.id&&state.audioSharedTrack?.kind===payload.track?.kind;
       if(current)pauseRoomAudio(false);
@@ -2665,6 +2664,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     }
   }
   $('#audioListenHere').onclick=()=>{
+    if(state.audioSharedTrack?.kind==='spotify'){audioTimeline.playSpotify();return;}
     if(state.audioPlaying&&state.audioSharedTrack&&state.audioPlayerReady){
       const current=state.audioSharedTrack;
       applyAudioVolume();

@@ -57,6 +57,7 @@
             for(const [id,value] of old)if(!next.has(id)&&(h.filter.event==='*'||h.filter.event==='DELETE'))h.callback({eventType:'DELETE',old:JSON.parse(value),new:{}});
           }this.snapshots.set(table,next);
         }
+        if(data.audioState&&this.audioCommand!==data.audioState.command_id){this.audioCommand=data.audioState.command_id;for(const h of this.handlers)if(h.type==='broadcast'&&h.filter.event==='audio-state')h.callback({payload:{...data.audioState,restore:true}});}
         for(const row of data.broadcasts||[]){if(this.broadcasts.has(row.id))continue;this.broadcasts.add(row.id);if(row.sender_id===this.ownUser)continue;for(const h of this.handlers)if(h.type==='broadcast'&&h.filter.event===row.event)h.callback({payload:row.payload});}
         this.presence=Object.fromEntries((data.presence||[]).map(r=>[r.payload.user_id,[r.payload]]));for(const h of this.handlers)if(h.type==='presence')h.callback();
       }finally{this.busy=false;}

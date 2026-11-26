@@ -28,6 +28,10 @@ test('appearance drafts do not change saved colors until submitted and invalid s
 
 test('complete 60/30/10 presets fill all fields and refresh both previews',()=>{
  const ui=screen(new Map()),form=ui.form(),presets=[...form.querySelectorAll('.portal-palette-preset')];assert.equal(presets.length,6);
- presets.find(b=>b.getAttribute('aria-label')==='Опівнічний Помаранч').click();assert.deepEqual([...form.querySelectorAll('input[type=color]')].map(i=>i.value),['#141413','#233554','#FF7A1A']);assert.ok(form.querySelector('input[type=checkbox]').checked);assert.equal(form.querySelector('#appearancePreview').children.length,2);assert.equal(form.querySelector('.portal-color-sample').children.length,2);assert.equal(form.querySelector('[aria-pressed=true]').getAttribute('aria-label'),'Опівнічний Помаранч');
+ presets.find(b=>b.getAttribute('aria-label')==='Опівнічний Помаранч').click();assert.deepEqual([...form.querySelectorAll('input[type=color]')].map(i=>i.value),['#141413','#233554','#FF7A1A']);assert.ok(form.querySelector('input[type=checkbox]').checked);assert.equal(form.querySelectorAll('#appearancePreview .mini-room').length,1);for(const zone of ['.mini-header','.mini-sidebar','.mini-material','.mini-tools','.mini-chat'])assert.ok(form.querySelector(zone));assert.equal(form.querySelector('.portal-color-sample').children.length,2);assert.equal(form.querySelector('[aria-pressed=true]').getAttribute('aria-label'),'Опівнічний Помаранч');
  const input=form.querySelector('input[type=color]');input.value='#ffffff';input.dispatchEvent(new ui.window.Event('input'));assert.equal(form.querySelector('[aria-pressed=true]'),null);
+});
+
+test('preview retains wallpaper and the saved motion preference survives reload',()=>{
+ const storage=new Map(),ui=screen(storage),form=ui.form(),upper=form.querySelector('#appearancePreview');upper.dataset.theme='mythos-runes';form.querySelector('.portal-palette-preset').click();assert.equal(upper.dataset.theme,'mythos-runes');assert.ok(upper.querySelector('.mini-room'));const motion=form.querySelector('[aria-label="Живе переливання фону"]');motion.checked=false;form.dispatchEvent(new ui.window.Event('submit'));assert.equal(ui.document.body.dataset.liveBackground,'off');assert.equal(storage.get('cth-live-background'),'off');assert.equal(screen(storage).document.body.dataset.liveBackground,'off');
 });
