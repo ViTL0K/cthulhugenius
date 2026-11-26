@@ -1,0 +1,12 @@
+@font-face{font-family:PortalVolja;src:url('/fonts/volja.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:PortalIrpin;src:url('/fonts/irpin.woff') format('woff');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:PortalEpoch;src:url('/fonts/epoch.woff') format('woff');font-style:normal;font-weight:400;font-display:swap}
+:root{--portal-body-font:Georgia,'Times New Roman',serif;--portal-heading-font:var(--portal-body-font)}
+body[data-portal-font=volja]{--portal-body-font:PortalVolja,Georgia,serif;--portal-heading-font:PortalVolja,Georgia,serif}
+body[data-portal-font=irpin]{--portal-body-font:PortalIrpin,Georgia,serif;--portal-heading-font:PortalIrpin,Georgia,serif}
+body[data-portal-font=epoch]{--portal-heading-font:PortalEpoch,Georgia,serif}
+body[data-portal-font]{font-family:var(--portal-body-font)}
+body[data-portal-font] :is(h1,h2,h3,.brand-mini strong,.brand,.room-home strong,.library-card-title){font-family:var(--portal-heading-font)}
+body[data-portal-font=epoch] :is(h1,h2,h3,.brand-mini strong,.room-home strong,.library-card-title){text-transform:uppercase;letter-spacing:.025em}
+body[data-portal-font]:not([data-portal-font=classic]):not([data-portal-font=epoch]) :is(button,.btn,input,textarea,select,.tool-btn,.chat-log,.message,.portal-card p,.field label,.person){font-family:var(--portal-body-font)}
+.portal-font-control{display:flex;align-items:center;gap:12px;justify-content:space-between;margin:12px 0}.portal-font-control select{background:#142018;color:#eee8d9;border:1px solid #61714b;border-radius:6px;padding:8px;max-width:65%;font:14px system-ui,sans-serif}.portal-font-control span{font:14px system-ui,sans-serif}

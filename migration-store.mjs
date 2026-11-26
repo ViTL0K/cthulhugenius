@@ -1,3 +1,4 @@
+import { handleMaterialLibrary, libraryFileAccess, ensureMaterialLibrary } from './material-library.mjs';
 import { accountRole } from './site-account.mjs';
 import { sessionUser } from './google-auth.mjs';
 import { handleRooms } from './rooms.mjs';
@@ -209,6 +210,11 @@ async function fileApi(ctx,request,url) {
   access(ctx,game,url.searchParams.has('list')||request.method!=='GET');
   if(request.method==='GET'&&url.searchParams.has('list'))return json({data:(await raw(ctx,'files',game)).map(f=>({id:f.id,name:f.id.slice(game.length+1),created_at:f.created_at,metadata:{mimetype:f.type}}))});
   const existing=(await raw(ctx,'files',game)).find(r=>r.id===path);
+  if(request.method==='GET'&&member(ctx,game).role!=='keeper'){
+    const allowed=await libraryFileAccess(ctx.db,game,path,ctx.user.id);
+    const activeLibrary=await ctx.db.prepare('SELECT 1 AS active FROM room_material_versions WHERE game_id=?').bind(game).first();
+    if(allowed===false||(allowed===null&&activeLibrary))fail('Файл недоступний.',404);
+  }
   if(request.method==='GET'){
     if(!existing)fail('Файл не знайдено.',404);
     const {results}=await ctx.db.prepare('SELECT bytes FROM migration_file_chunks WHERE path=? ORDER BY part').bind(path).all();
@@ -258,14 +264,14 @@ async function rulesApi(ctx,request,url){
   const card=await put(ctx,'rules',{...map.get(id),title:data.title.trim(),body:data.body,visibility:data.visibility,examples:data.examples,updated_at:now()},id);return json({card});
 }
 async function adminApi(ctx,request,url,env){
-  admin(ctx);
+  admin(ctx);await ensureMaterialLibrary(ctx.db);
   const tail=url.pathname.slice('/api/migration/admin/'.length);
   if(request.method==='GET'&&tail==='overview'){
     const [games,users,totals]=await ctx.db.batch([
       ctx.db.prepare(`SELECT g.*,u.display_name AS keeper_name,
         (SELECT COUNT(*) FROM game_members m WHERE m.game_id=g.id) AS member_count,
         (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name IN ('investigator_sheets','game_character_sheets')) AS sheet_count,
-        (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='hidden_materials') AS material_count,
+        CASE WHEN EXISTS(SELECT 1 FROM room_material_versions v WHERE v.game_id=g.id) THEN (SELECT COUNT(*) FROM room_material_cards c WHERE c.game_id=g.id) ELSE (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='hidden_materials') END AS material_count,
         (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='files') AS file_count
         FROM games g JOIN site_users u ON u.id=g.keeper_id ORDER BY g.created_at DESC LIMIT 500`),
       ctx.db.prepare("SELECT u.id,u.display_name,u.email,u.created_at,COALESCE(r.role,'player') AS role FROM site_users u LEFT JOIN account_roles r ON r.user_id=u.id ORDER BY u.created_at DESC LIMIT 500"),
@@ -274,7 +280,7 @@ async function adminApi(ctx,request,url,env){
     const accounts=users.results.map(u=>({...u,role:u.id===ctx.user.id?'admin':u.role==='admin'?'keeper':u.role}));
     const [personal,prepared,requests,feedback]=await Promise.all(['investigator_sheets','game_character_sheets','keeper_access_requests','feedback'].map(t=>raw(ctx,t)));
     const sheets=[...personal.map(s=>({...s,kind:'personal'})),...prepared.map(s=>({...s,kind:'prepared'}))].map(s=>({id:s.id,game_id:s.game_id,user_id:s.user_id||s.assigned_user_id||null,kind:s.kind,name:s.sheet?.Investigators_Name||s.sheet?.char_name||s.character_name||'Персонаж без імені',updated_at:s.updated_at||s.created_at}));
-    return json({user:ctx.user,rooms:games.results,accounts,sheets,requests,feedback,counts:Object.fromEntries(totals.results.map(t=>[t.table_name,t.count]))});
+    return json({user:ctx.user,rooms:games.results,accounts,sheets,requests,feedback,counts:{...Object.fromEntries(totals.results.map(t=>[t.table_name,t.count])),material_library_total:games.results.reduce((sum,g)=>sum+g.material_count,0)}});
   }
   if(request.method!=='POST')fail('Метод недоступний.',405);
   const data=await request.json().catch(()=>null);if(!data||typeof data!=='object')fail('Некоректний запит.');
@@ -328,6 +334,7 @@ export async function handleMigration(request,env){
       return json({quotes:results.map(r=>JSON.parse(r.data)).map(r=>({id:r.id,text:r.quote_text,author:r.author||'',date:r.quote_date||''}))});
     }
     const ctx=await context(request,env);
+    if(url.pathname.startsWith('/api/migration/library/'))return await handleMaterialLibrary(request,ctx,url);
     if(url.pathname.startsWith('/api/migration/admin/'))return await adminApi(ctx,request,url,env);
     if(url.pathname==='/api/migration/files')return await fileApi(ctx,request,url);
     if(url.pathname.startsWith('/api/portal-rules'))return await rulesApi(ctx,request,url);

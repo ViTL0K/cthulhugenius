@@ -22,7 +22,7 @@ function roomCard(room){
   card.append(actions);return card;
 }
 function render(){
-  const totalSheets=state.sheets.length,totalMaterials=state.counts.hidden_materials||0;
+  const totalSheets=state.sheets.length,totalMaterials=state.counts.material_library_total??state.counts.hidden_materials??0;
   $('#stats').replaceChildren(...[[state.rooms.length,'Пригод на сайті'],[state.accounts.length,'Акаунтів'],[totalSheets,'Листів персонажів'],[totalMaterials,'Матеріалів пригод']].map(([value,title])=>{const card=node('div',undefined,'stat');card.append(node('b',String(value)),node('span',title));return card;}));
   $('#recent-rooms').replaceChildren(...(state.rooms.length?state.rooms.slice(0,4).map(roomCard):[empty('Створи першу пригоду в розділі «Пригоди й кімнати».')]));
   $('#all-rooms').replaceChildren(...(state.rooms.length?state.rooms.map(roomCard):[empty('Пригод поки немає.')]));
