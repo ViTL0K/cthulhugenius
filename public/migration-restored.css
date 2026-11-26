@@ -1,0 +1,5 @@
+/* Preserve original layout with Google-only entry. */
+.google-auth > :not(a):not([data-google-heading]):not(#entryError) {display:none!important}
+.google-auth > a {display:block;text-align:center;text-decoration:none}
+.entry-card .auth-navigation,.entry-card .auth-tabs {display:none!important}
+body {font-size:16px}

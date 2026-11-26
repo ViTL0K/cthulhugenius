@@ -1,0 +1,9 @@
+.sheet-print-overlay{position:absolute;inset:0;z-index:1;pointer-events:none;color:#241e16}
+.sheet-print-overlay i,.sheet-print-label{position:absolute}
+.sheet-print-label{display:flex;align-items:center;white-space:pre;font:normal 1cqw/1 Georgia,"Times New Roman",serif}
+.sheet-print-label.bold,.sheet-print-label.heading{font-weight:700}
+.sheet-print-label.italic{font-style:italic}
+.sheet-print-label.vertical{writing-mode:vertical-rl;rotate:180deg;justify-content:center}
+.sheet-pdf-pages:not([lang="uk"]) .sheet-skill-base{display:none}
+.sheet-pdf-actions select{width:auto}
+.sheet-print-rule{border-top:1px solid #57493c}
