@@ -10,7 +10,7 @@ function json(data, status = 200) {
 async function listRooms(db, user, env) {
   const {results} = await db.prepare(
     'SELECT g.id, g.title, g.description, m.role, ' +
-    "CASE WHEN m.role = 'keeper' THEN g.room_code END AS code " +
+    "g.room_code AS code " +
     'FROM game_members m JOIN games g ON g.id = m.game_id WHERE m.user_id = ? ' +
     'ORDER BY g.created_at DESC, g.id'
   ).bind(user.id).all();

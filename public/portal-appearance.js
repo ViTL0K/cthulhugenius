@@ -1,4 +1,8 @@
 (()=>{
+ const palettes=['sand','night','sky','blue','crimson','walnut','cobalt','rose','forest','amber','cosmic'];
+ const textures=['stone','02_aged_paper','04_old_plaster','05_brick_wall','09_walnut_table','10_oak_table','mythos-tentacles','mythos-runes','mythos-fog','mythos-depths'];
+ function restoreTheme(){try{const palette=localStorage.getItem('cth-palette'),theme=localStorage.getItem('cth-theme');if(palettes.includes(palette))document.body.dataset.palette=palette;else if(!document.body.dataset.palette)document.body.dataset.palette='night';if(textures.includes(theme))document.body.dataset.theme=theme;else if(!document.body.dataset.theme)document.body.dataset.theme='stone';}catch{}}
+ restoreTheme();
  const key='cth-portal-colors',valid=v=>/^#[0-9a-f]{6}$/i.test(v||'');
  const defaults={background:'#101914',surface:'#26362b',accent:'#d9b566'};
  let saved=null;try{const item=JSON.parse(localStorage.getItem(key));if(item&&['background','surface','accent'].every(k=>valid(item[k])))saved=item;}catch{}
@@ -10,6 +14,7 @@
   body.dataset.customColors='true';const values={'--bg':colors.background,'--panel':colors.surface,'--panel2':mix(colors.surface,ink(colors.surface),.055),'--line':mix(colors.surface,colors.accent,.42),'--ink':ink(colors.surface),'--muted':mix(colors.surface,ink(colors.surface),.72),'--gold':colors.accent,'--gold2':colors.accent,'--accent-ink':ink(colors.accent),'--base-ink':ink(colors.background),'--surface-dark':colors.background,'--surface-light':mix(colors.background,colors.surface,.6),'--wash-light':mix(colors.background,colors.surface,.6)+'bb','--wash-dark':colors.background+'dd'};
   for(const [name,value]of Object.entries(values))body.style.setProperty(name,value);
  }
+ if(typeof window!=='undefined')window.addEventListener('storage',event=>{if(['cth-theme','cth-palette'].includes(event.key))restoreTheme();if(event.key===key){let next=null;try{const item=JSON.parse(event.newValue);if(item&&['background','surface','accent'].every(k=>valid(item[k])))next=item;}catch{}saved=next;apply(saved);}});
  apply(saved);try{document.body.dataset.liveBackground=localStorage.getItem('cth-live-background')==='off'?'off':'on';}catch{document.body.dataset.liveBackground='on';}
  function mount(form){if(form.querySelector('[data-color-settings]'))return;
   const fieldset=document.createElement('fieldset');fieldset.dataset.colorSettings='true';fieldset.className='portal-color-settings';const legend=document.createElement('legend');legend.textContent='Власні кольори';fieldset.append(legend);

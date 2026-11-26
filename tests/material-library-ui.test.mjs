@@ -68,12 +68,15 @@ test('keeper changes visibility from a card status without altering its content'
  const ui=dom(fixture,'keeper');await flush();
  ui.document.querySelector('.library-access').click();await flush();
  let popup=ui.document.querySelector('.library-access-popup');assert.ok(popup.open);
+ assert.equal(popup.querySelector('[aria-pressed=true]').textContent,'Приховати від усіх');
+ [...popup.querySelectorAll('button')].find(b=>b.textContent==='Обраним гравцям').click();
+ assert.equal(popup.querySelector('[aria-pressed=true]').textContent,'Обраним гравцям');assert.equal(popup.querySelector('fieldset').hidden,false);
  popup.querySelector('input[value="alice"]').checked=true;popup.querySelector('form').dispatchEvent(new ui.window.Event('submit',{bubbles:true,cancelable:true}));await flush();
  assert.equal((await fixture.call('alice')).cards.length,1);assert.equal((await fixture.call('bob')).cards.length,0);
  let saved=(await fixture.call('keeper','/cards/'+card.id)).card;assert.equal(saved.body,'Збережений опис');assert.equal(saved.image,tiny);assert.equal(saved.cover_source,tiny);
  ui.document.querySelector('.library-access').click();await flush();popup=ui.document.querySelector('.library-access-popup[open]');[...popup.querySelectorAll('button')].find(b=>b.textContent==='Відкрити всім').click();await flush();
  assert.equal((await fixture.call('bob')).cards.length,1);
- ui.document.querySelector('.library-access').click();await flush();popup=ui.document.querySelector('.library-access-popup[open]');[...popup.querySelectorAll('button')].find(b=>b.textContent==='Приховати від усіх').click();await flush();assert.equal((await fixture.call('alice')).cards.length,0);ui.library.dispose();
+ ui.document.querySelector('.library-access').click();await flush();popup=ui.document.querySelector('.library-access-popup[open]');assert.equal(popup.querySelector('[aria-pressed=true]').textContent,'Відкрити всім');assert.equal(popup.querySelector('fieldset').hidden,true);[...popup.querySelectorAll('button')].find(b=>b.textContent==='Приховати від усіх').click();await flush();assert.equal((await fixture.call('alice')).cards.length,0);ui.library.dispose();
 });
 test('materials shortcut opens a separate browser and returns the library to its panel on close',async()=>{
  const fixture=setup();await fixture.create({title:'Локації',audience:'all'});const ui=dom(fixture,'alice');await flush();

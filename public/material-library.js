@@ -71,8 +71,13 @@
    for(const player of data?.players||[]){const label=make('label'),check=make('input');check.type='checkbox';check.value=player.user_id;check.checked=current.audience==='all'||(current.targets||[]).includes(player.user_id);label.append(check,document.createTextNode(player.display_name));picks.append(label);}
    const message=make('p','','library-editor-status');message.setAttribute('role','status');
    async function save(audience,targets=[]){if(scope!==room||token!==generation){popup.close();return;}const controls=[...form.querySelectorAll('button')];controls.forEach(b=>b.disabled=true);try{await api('/cards/'+card.id,{method:'PUT',body:JSON.stringify({title:current.title,revision:current.revision,audience,targets})});popup.close();await refresh(true);}catch(error){message.textContent=error.message;}finally{controls.forEach(b=>b.disabled=false);}}
-   const actions=make('div',undefined,'library-access-actions');actions.append(button('Відкрити всім',()=>save('all'),'btn primary'),button('Приховати від усіх',()=>save('hidden')));
+   const actions=make('div',undefined,'library-access-actions');
    const selected=make('button','Зберегти вибір','btn');selected.type='submit';selected.disabled=!data?.players?.length;
+   const modes=[];
+   function mark(mode){for(const [value,b] of modes){b.setAttribute('aria-pressed',String(value===mode));b.classList.toggle('primary',value===mode);}picks.hidden=mode!=='selected';selected.hidden=mode!=='selected';}
+   for(const [mode,label] of [['all','Відкрити всім'],['hidden','Приховати від усіх'],['selected','Обраним гравцям']]){const b=button(label,()=>{if(mode==='selected'){mark(mode);picks.querySelector('input')?.focus();}else void save(mode);});modes.push([mode,b]);actions.append(b);}
+   mark(current.audience);
+
    form.append(actions,picks,message,selected);form.addEventListener('submit',e=>{e.preventDefault();const targets=[...picks.querySelectorAll('input:checked')].map(c=>c.value);void save(targets.length?'selected':'hidden',targets);});
    popup.append(form);document.body.append(popup);dialog=popup;popup.addEventListener('close',()=>popup.remove());popup.showModal();
   }

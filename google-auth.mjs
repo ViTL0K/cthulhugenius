@@ -1,3 +1,4 @@
+import { ensureAccountProfiles } from './account-profile.mjs';
 import { accountRole } from './site-account.mjs';
 const callbackPath = '/api/migration/auth/google/callback';
 const landingPath = '/migration/';
@@ -117,9 +118,10 @@ async function finishSignIn(request, env, url, attempt) {
   if (!profile) return diagnostic(attempt.stage);
   attempt.stage = 'd1-account';
   const name = (typeof profile.name === 'string' ? profile.name.trim() : '').slice(0, 120);
+  await ensureAccountProfiles(env.DB);
   const user = await env.DB.prepare(
     'INSERT INTO site_users (id, google_subject, email, display_name) VALUES (?, ?, ?, ?) ' +
-    'ON CONFLICT (google_subject) DO UPDATE SET email = excluded.email, display_name = excluded.display_name ' +
+    'ON CONFLICT (google_subject) DO UPDATE SET email = excluded.email, display_name = COALESCE((SELECT display_name FROM account_profiles WHERE user_id=site_users.id), excluded.display_name) ' +
     'RETURNING id'
   ).bind(crypto.randomUUID(), profile.sub, profile.email, name || profile.email).first();
 

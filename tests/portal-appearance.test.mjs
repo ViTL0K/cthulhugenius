@@ -35,3 +35,7 @@ test('complete 60/30/10 presets fill all fields and refresh both previews',()=>{
 test('preview retains wallpaper and the saved motion preference survives reload',()=>{
  const storage=new Map(),ui=screen(storage),form=ui.form(),upper=form.querySelector('#appearancePreview');upper.dataset.theme='mythos-runes';form.querySelector('.portal-palette-preset').click();assert.equal(upper.dataset.theme,'mythos-runes');assert.ok(upper.querySelector('.mini-room'));const motion=form.querySelector('[aria-label="Живе переливання фону"]');motion.checked=false;form.dispatchEvent(new ui.window.Event('submit'));assert.equal(ui.document.body.dataset.liveBackground,'off');assert.equal(storage.get('cth-live-background'),'off');assert.equal(screen(storage).document.body.dataset.liveBackground,'off');
 });
+
+test('saved palette and wallpaper restore on pages without the room application',()=>{
+ const ui=screen(new Map([['cth-palette','cosmic'],['cth-theme','09_walnut_table']]));assert.equal(ui.document.body.dataset.palette,'cosmic');assert.equal(ui.document.body.dataset.theme,'09_walnut_table');
+});

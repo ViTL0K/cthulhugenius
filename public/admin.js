@@ -1,3 +1,4 @@
+import {createAdminEditor} from './admin-editor.js?v=101';
 const $=s=>document.querySelector(s);
 const labels={overview:'Огляд порталу',rooms:'Пригоди й кімнати',sheets:'Листи персонажів',content:'Наповнення сайту',accounts:'Акаунти та ролі',requests:'Запити на права ведучого',feedback:'Повідомлення та ідеї'};
 const roleNames={admin:'Адміністратор',keeper:'Ведучий',player:'Гравець'};
@@ -9,7 +10,12 @@ async function api(path,body){const r=await fetch('/api/migration/admin/'+path,{
 async function run(control,action){control.disabled=true;try{await action();}catch(e){status(e.message,true);}finally{control.disabled=false;}}
 function selectSection(name){if(!labels[name])return;section=name;for(const el of document.querySelectorAll('.panel'))el.hidden=el.id!==name;for(const b of document.querySelectorAll('nav [data-section]'))b.setAttribute('aria-current',b.dataset.section===name?'page':'false');$('#page-title').textContent=labels[name];history.replaceState(null,'','#'+name);}
 function empty(text){return node('div',text,'empty');}
+const editor=createAdminEditor({document,window,openRoom:async game=>(await api('rooms/'+encodeURIComponent(game)+'/open',{})).url,onClose:()=>refresh()});
+async function contentTool(tool){if(tool==='materials'){chooseMaterialRoom();return;}await editor.open({tool});}
+function chooseMaterialRoom(){const dialog=$('#admin-room-picker'),list=$('#admin-room-options');list.replaceChildren(...(state.rooms.length?state.rooms.map(room=>button(room.title+' · '+room.room_code,async()=>{dialog.close();await editor.open({game:room.id,tool:'materials'});} )):[empty('Спочатку створи пригоду в розділі «Пригоди й кімнати».')]));dialog.showModal();}
+$('#close-room-picker').addEventListener('click',()=>$('#admin-room-picker').close());
 async function workspace(game,tool='',extra={}){
+  if(tool){await editor.open({game,tool,extra});return;}
   let url='/migration/?workspace=1';
   if(game)url=(await api('rooms/'+encodeURIComponent(game)+'/open',{})).url;
   const target=new URL(url,location.origin);if(tool)target.searchParams.set('tool',tool);for(const [key,value] of Object.entries(extra))if(value)target.searchParams.set(key,value);
@@ -43,7 +49,7 @@ function render(){
 }
 async function refresh(){state=await api('overview');render();$('#identity').textContent=state.user.display_name+' · Адміністратор';$('#signout').hidden=false;$('#access').hidden=true;$('#dashboard').hidden=false;}
 function editRoom(room){editingRoom=room.id;const form=$('#edit-room');form.elements.title.value=room.title;form.elements.description.value=room.description;$('#edit-status').textContent='';$('#room-editor').showModal();}
-document.addEventListener('click',e=>{const target=e.target.closest('[data-section]');if(target){selectSection(target.dataset.section);return;}const tool=e.target.closest('[data-tool]');if(tool)void run(tool,()=>workspace(null,tool.dataset.tool));});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-section]');if(target){selectSection(target.dataset.section);return;}const tool=e.target.closest('[data-tool]');if(tool)void run(tool,()=>contentTool(tool.dataset.tool));});
 $('#refresh').addEventListener('click',()=>run($('#refresh'),async()=>{await refresh();status('Дані оновлено.');}));
 $('#close-editor').addEventListener('click',()=>$('#room-editor').close());
 $('#edit-room').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const submit=form.querySelector('.primary');submit.disabled=true;try{await api('rooms/'+editingRoom+'/update',Object.fromEntries(new FormData(form)));$('#room-editor').close();await refresh();status('Пригоду оновлено.');}catch(error){$('#edit-status').textContent=error.message;}finally{submit.disabled=false;}});

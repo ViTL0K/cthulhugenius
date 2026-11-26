@@ -1,3 +1,4 @@
+import { saveAccountName } from './account-profile.mjs';
 import { normalizeAudioCommand } from './room-audio-state.mjs';
 import { handleMaterialLibrary, libraryFileAccess, ensureMaterialLibrary } from './material-library.mjs';
 import { accountRole } from './site-account.mjs';
@@ -159,6 +160,11 @@ async function roomCall(ctx,request,env,path,data){
   const result=await response.json();if(!response.ok)fail(result.error,response.status);return result;
 }
 async function rpc(ctx,name,a,request,env){
+  if(name==='update_account_name'){
+    const display_name=await saveAccountName(ctx.db,ctx.user.id,a.display_name);
+    for(const m of ctx.members)await event(ctx,m.game_id,'member-updated');
+    return {display_name};
+  }
   if(name==='my_account_role')return ctx.role;
   if(name==='submit_feedback'){const text=String(a.text||'').trim();if(!text||text.length>4000)fail('Вкажи опис до 4000 символів.');return put(ctx,'feedback',{user_id:ctx.user.id,display_name:ctx.user.display_name,kind:String(a.kind||'Повідомлення').slice(0,100),text,status:'new',created_at:now()});}
   if(name==='list_my_games'){const r=await roomCall(ctx,request,env,'');return r.rooms.map(g=>({...g,room_code:g.code}));}
@@ -171,6 +177,13 @@ async function rpc(ctx,name,a,request,env){
     await put(ctx,'game_character_sheets',{...sheet,assigned_user_id:a.target_user||null});await event(ctx,sheet.game_id,'character-sheet-assigned');return null;
   }
   const game=a.target_game;const m=access(ctx,game);
+  if(name==='get_room_announcement')return (await raw(ctx,'room_announcement',game))[0]||null;
+  if(name==='set_room_announcement'){
+    access(ctx,game,true);
+    const title=String(a.title||'').trim(),body=String(a.body||'').trim();
+    if(title.length>120||body.length>8000||(!a.hidden&&!body))fail('Вкажи текст до 8000 символів і заголовок до 120.');
+    return put(ctx,'room_announcement',{game_id:game,title,body,hidden:!!a.hidden,revision:crypto.randomUUID()},game);
+  }
   if(name==='get_room_state'){
     const stored=(await raw(ctx,'boards',game))[0];let scenes=stored?.scenes;
     if(!scenes){const found=await ctx.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='migration_room_boards'").first();

@@ -29,3 +29,12 @@ html,body{max-width:100%;overflow-x:hidden}#roomView *,#appearanceSettings *{box
 .mini-chat{grid-column:2/4;display:grid;gap:5px;grid-template-columns:1fr}.mini-message{padding:5px;border-left:2px solid var(--gold);background:var(--panel2);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.mini-input{padding:4px;border:1px solid var(--line);border-radius:4px;opacity:.8;font-size:9px}.portal-motion-control{display:flex;align-items:center;gap:8px;padding:12px 0 3px;font-size:13px}
 @media(max-width:540px){.appearance-preview{padding:8px!important;min-height:300px}.mini-room{grid-template-columns:17% minmax(0,1fr) 25%;gap:4px;font-size:9px}.mini-room>div,.mini-room>aside,.mini-room>section{padding:5px}.mini-header>span{font-size:8px}.mini-cover{height:85px}}
 #roomView.room-player .audio-track-row .play,#roomView.room-player .audio-track-row .remove{display:none}#roomView.room-player .audio-track-row{grid-template-columns:minmax(0,1fr)}
+
+#roomView .room-title{grid-column:1;grid-row:1;justify-self:start;justify-content:flex-start}
+#roomView .room-controls{grid-column:2;grid-row:1;justify-self:end}
+#roomView .room-id{border:1px solid var(--gold);border-radius:6px;padding:6px 9px;color:var(--gold);display:flex;gap:7px;align-items:center}
+#roomView .room-id b{font-size:13px;white-space:nowrap}
+#roomView .person>span{min-width:0;flex:1}
+#roomView .participant-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.room-announcement{position:fixed;inset:0;margin:auto;z-index:10000;width:min(640px,calc(100vw - 28px));max-height:80dvh;overflow:auto;border:1px solid var(--gold);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;box-shadow:0 20px 80px #000a;font-family:inherit}
+.room-announcement p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}.room-announcement header{display:flex;align-items:center;justify-content:space-between;gap:12px}.room-announcement h2{margin:0;font-size:20px}

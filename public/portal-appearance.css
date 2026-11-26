@@ -328,3 +328,23 @@ body[data-live-background=off]::after,.appearance-preview[data-live-background=o
 @media(prefers-reduced-motion:reduce){body[data-theme]::after,.appearance-preview[data-theme]::after{animation:none!important;transform:none!important}}
 
 .appearance-preview[data-palette]{--accent-ink:#101713}
+
+body[data-palette="sand"]{--bg:#28241d;--panel:#332e25;--panel2:#3b3428;--line:#5c5040;--ink:#f2e9d8;--muted:#c2b49b;--gold:#d3ad71;--gold2:#efd19a}
+body[data-palette="night"]{--bg:#111714;--panel:#1b211c;--panel2:#222a23;--line:#3a4438;--ink:#eee8d9;--muted:#a7aa97;--gold:#c7a96b;--gold2:#e4cb92}
+body[data-palette="sky"]{--bg:#18252a;--panel:#203139;--panel2:#273a43;--line:#425b63;--ink:#e5eff0;--muted:#a8bec3;--gold:#89b8c3;--gold2:#b9e0e4}
+body[data-palette="blue"]{--bg:#101a2a;--panel:#19263a;--panel2:#202f46;--line:#3b506b;--ink:#e7edf7;--muted:#aab8cf;--gold:#8faed7;--gold2:#c2d5f2}
+/* Shared surfaces use the selected palette on the portal and administrator pages. */
+body[data-palette] :is(.portal-card,.portal-card.featured,.entry-card,.join-card,.roster,.toolbox,.chatbox,.person.active,.message,.theme-select-card,.portal-room-strip,.portal-join-panel){background:var(--panel);color:var(--ink);border-color:var(--line)}
+body[data-palette] :is(.portal-card.featured,.portal-card:hover){background:color-mix(in srgb,var(--panel) 87%,var(--gold));border-color:var(--gold)}
+body[data-palette] :is(.btn,.icon-btn,.chat-target,.tool-btn:hover,.quote-controls button){background:var(--panel2);color:var(--ink);border-color:var(--line)}
+body[data-palette] :is(.btn.primary,.btn[aria-pressed=true],.library-access-actions button[aria-pressed=true]){background:var(--gold);border-color:var(--gold);color:var(--accent-ink,#111714)}
+body[data-palette] :is(.portal-card p,.portal-card.featured p){color:var(--muted)}
+body[data-palette] :is(input,textarea,select){background:var(--panel2);color:var(--ink);border-color:var(--line)}
+body[data-admin] :is(.card,.stat,.list article,.create-room,dialog,th,.badge){background:var(--panel);border-color:var(--line);color:var(--ink)}
+body[data-admin] :is(.topbar,.layout>aside){background:color-mix(in srgb,var(--bg) 85%,transparent)}
+body[data-admin] :is(button,.button){background:var(--panel2,var(--panel));color:var(--ink);border-color:var(--line)}
+body[data-admin] :is(.primary,.button,nav button[aria-current=page]){background:var(--gold);border-color:var(--gold);color:var(--accent-ink,#111714)}
+body[data-admin] .quiet{background:transparent}body[data-admin] .muted{color:var(--muted)}
+
+body[data-palette] :is(.library-card,.library-card-title){border-color:var(--line)}body[data-palette] .library-card:hover{border-color:var(--gold)}
+body[data-palette] :is(.library-access.hidden,.library-access.selected){color:var(--gold)}body[data-palette] .library-scroll{scrollbar-color:var(--line) var(--bg)}
