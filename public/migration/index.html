@@ -313,7 +313,8 @@ body:has(#roomView.active){overflow:hidden}
         <div class="brand"><div class="brand-mark">☼</div><div class="eyebrow"><span data-ui-text="Інструмент для гри">Інструмент для гри</span></div><h1>Поклик<br>Ктулху</h1><p class="muted"><span data-ui-text="Стіл ведучого, що вміщується в одному вікні.">Стіл ведучого, що вміщується в одному вікні.</span></p></div>
         <div class="entry-quote"><span id="entryQuoteText">«Наймилосердніше в цьому світі — це нездатність людського розуму пов’язати всі його частини».</span><small id="entryQuoteMeta">Г. Ф. Лавкрафт · 1926</small><div class="quote-controls"><button type="button" data-action="next-quote" aria-label="Наступна цитата">Наступна цитата →</button></div></div>
       </div>
-      <form id="joinForm" class="entry-card">
+      <form id="joinForm" class="entry-card google-auth">
+        <h2 data-google-heading>Особистий вхід</h2><a class="btn primary" href="/api/migration/auth/google">Увійти через Google</a>
         <div class="eyebrow"><span data-ui-text="Особистий вхід">Особистий вхід</span></div><h2>Поклик Ктулху</h2><p class="muted small"><span data-ui-text="Увійди за поштою. Новий акаунт отримає права гравця.">Увійди за поштою. Новий акаунт отримає права гравця.</span></p>
         <div class="field" id="registrationName" hidden><label for="playerName"><span data-ui-text="Ім’я гравця">Ім’я гравця</span></label><input id="playerName" name="name" disabled maxlength="24" placeholder="Наприклад, Григорій" data-ui-placeholder="Наприклад, Григорій" autocomplete="name"></div>
         <div class="field"><label for="playerEmail"><span data-ui-text="Електронна пошта">Електронна пошта</span></label><input id="playerEmail" name="email" type="email" placeholder="name@example.com" autocomplete="email" required></div>
@@ -3340,7 +3341,6 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   window.__cthEntryReady=true;
   applyNavigationLanguage();
   document.querySelectorAll('#joinForm .field,#joinForm .auth-navigation,#joinForm .auth-options,#joinForm .auth-remember').forEach(el=>el.hidden=true);
-  const google=document.createElement('a');google.className='btn primary';google.href='/api/migration/auth/google';google.textContent='Увійти через Google';const heading=document.createElement('h2');heading.textContent='Особистий вхід';heading.dataset.googleHeading='true';$('#joinForm').prepend(google);$('#joinForm').prepend(heading);
   $('#joinForm').classList.add('google-auth');
   const signin=new URLSearchParams(location.search).get('signin');if(signin){$('#entryError').textContent=signin==='cancelled'?'Вхід скасовано.':'Не вдалося увійти через Google. Спробуй ще раз.';$('#entryError').hidden=false;history.replaceState(null,'',location.pathname);}
   restoreEmailSession();
