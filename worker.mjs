@@ -5,7 +5,7 @@ import { handleMigration } from './migration-store.mjs';
 export default {
   fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/site-version') return Response.json({version:'2026-11-26-admin-95'},{headers:{'Cache-Control':'no-store'}});
+    if (url.pathname === '/api/site-version') return Response.json({version:'2026-11-26-presence-96'},{headers:{'Cache-Control':'no-store'}});
     if (url.pathname.startsWith('/api/migration/auth/')) return handleGoogleAuth(request, env);
     if (url.pathname === '/api/migration/rooms' || url.pathname.startsWith('/api/migration/rooms/')) {
       return handleRooms(request, env.DB, url, env);

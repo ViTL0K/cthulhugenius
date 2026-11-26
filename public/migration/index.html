@@ -1234,15 +1234,15 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     modal.querySelector('.modal-head [data-action=close-modal]').setAttribute('aria-label',localizedSettings?uiText("Закрити"):'Закрити');
     $('#modalTitle').textContent=title;delete $('#modalBody').dataset.bioRequest;delete $('#modalBody').dataset.bioMember;$('#modalBody').innerHTML=html;$('#modalFoot').hidden=foot===null;$('#modalFoot').innerHTML=foot===null?'':foot||(localizedSettings?settingsFooter():'<button class="btn" data-action="close-modal">Закрити</button>');modal.classList.toggle('sheet-modal',title.startsWith('Лист дослідника')||title.startsWith('Лист ·'));modal.classList.toggle('sheet-manager-modal',title.startsWith('Листи персонажів')||title==='Керування листами');modal.showModal()}
   function dicePanel(){openModal('Кидок кубиків',`<p class="muted">Демо-кидок d100. У повній версії тип кидка та успіх будуть відповідати обраному виданню правил.</p><div class="field"><label for="skillSelect">Навичка</label><select id="skillSelect"><option>Спостережливість · 55</option><option>Пошук · 40</option><option>Психологія · 35</option><option>Медицина · 30</option><option>Удача · 50</option><option>Інша перевірка · 50</option></select></div><div class="field"><label for="targetValue">Цільове значення</label><input id="targetValue" type="number" min="1" max="99" value="55"></div><div id="rollOutput" class="roll-result"><span class="muted small">Натисни кнопку, щоб кинути</span></div>`,`<button class="btn" data-action="close-modal">Скасувати</button><button class="btn primary" data-action="roll">Кинути d100</button>`)}
-  let lastPresenceActive=null;
+  let lastPresenceActive=null,lastPresenceSentAt=0,lastPresenceChannel=null;
   async function updatePresence(force=false){
     const channel=state.roomSub;
     if(!channel||!state.userId)return;
     const active=$('#roomView').classList.contains('active');
-    if(!force&&active===lastPresenceActive)return;
+    if(!force&&channel===lastPresenceChannel&&active===lastPresenceActive&&Date.now()-lastPresenceSentAt<25000)return;
     try{
       const result=await channel.track({user_id:state.userId,active,role:state.role,seen_at:new Date().toISOString()});
-      if(channel===state.roomSub&&result==='ok')lastPresenceActive=active;
+      if(channel===state.roomSub&&result==='ok'){lastPresenceActive=active;lastPresenceSentAt=Date.now();lastPresenceChannel=channel;}
     }catch{}
   }
   setInterval(()=>updatePresence(),30000);
