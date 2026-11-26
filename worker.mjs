@@ -5,10 +5,10 @@ import { handleMigration } from './migration-store.mjs';
 export default {
   fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/site-version') return Response.json({version:'2026-11-26-migration-94'},{headers:{'Cache-Control':'no-store'}});
+    if (url.pathname === '/api/site-version') return Response.json({version:'2026-11-26-admin-95'},{headers:{'Cache-Control':'no-store'}});
     if (url.pathname.startsWith('/api/migration/auth/')) return handleGoogleAuth(request, env);
     if (url.pathname === '/api/migration/rooms' || url.pathname.startsWith('/api/migration/rooms/')) {
-      return handleRooms(request, env.DB, url);
+      return handleRooms(request, env.DB, url, env);
     }
     if (url.pathname.startsWith('/api/migration/') || url.pathname.startsWith('/api/portal-rules') || url.pathname.startsWith('/api/direct-messages/')) return handleMigration(request, env);
     if (url.pathname === '/') return Response.redirect(new URL('/migration/', url), 302);

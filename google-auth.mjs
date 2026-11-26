@@ -1,3 +1,4 @@
+import { accountRole } from './site-account.mjs';
 const callbackPath = '/api/migration/auth/google/callback';
 const landingPath = '/migration/';
 const flowCookie = '__Host-poklik-oauth';
@@ -147,8 +148,9 @@ export async function sessionUser(request, db) {
   ).bind(await digest(token), Math.floor(Date.now() / 1000)).first();
 }
 
-async function currentSession(request, db) {
-  return json({ user: await sessionUser(request, db) });
+async function currentSession(request, db, env) {
+  const user=await sessionUser(request,db);
+  return json({user,role:user?await accountRole(db,user.id,env):null});
 }
 
 async function signOut(request, db, origin) {
@@ -172,7 +174,7 @@ export async function handleGoogleAuth(request, env) {
   try {
     if (request.method === 'GET' && url.pathname === '/api/migration/auth/google') return await startSignIn(env);
     if (request.method === 'GET' && url.pathname === callbackPath) return await finishSignIn(request, env, url, attempt);
-    if (request.method === 'GET' && url.pathname === '/api/migration/auth/session') return await currentSession(request, env.DB);
+    if (request.method === 'GET' && url.pathname === '/api/migration/auth/session') return await currentSession(request, env.DB, env);
     if (request.method === 'POST' && url.pathname === '/api/migration/auth/logout') return await signOut(request, env.DB, url.origin);
     return json({ error: 'Not found' }, 404);
   } catch {

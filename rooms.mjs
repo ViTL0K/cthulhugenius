@@ -1,3 +1,4 @@
+import { accountRole } from './site-account.mjs';
 import { sessionUser } from './google-auth.mjs';
 
 const route = '/api/migration/rooms';
@@ -6,16 +7,15 @@ function json(data, status = 200) {
   return Response.json(data, {status, headers: {'Cache-Control': 'no-store'}});
 }
 
-async function listRooms(db, user) {
+async function listRooms(db, user, env) {
   const {results} = await db.prepare(
     'SELECT g.id, g.title, g.description, m.role, ' +
     "CASE WHEN m.role = 'keeper' THEN g.room_code END AS code " +
     'FROM game_members m JOIN games g ON g.id = m.game_id WHERE m.user_id = ? ' +
     'ORDER BY g.created_at DESC, g.id'
   ).bind(user.id).all();
-  const role = await db.prepare('SELECT role FROM account_roles WHERE user_id = ?').bind(user.id).first();
-  const accountRole = role?.role ?? 'player';
-  return json({rooms: results, accountRole, canCreate: accountRole !== 'player'});
+  const role = await accountRole(db,user.id,env);
+  return json({rooms: results, accountRole:role, canCreate:role !== 'player'});
 }
 
 async function createRoom(db, user, data) {
@@ -25,9 +25,11 @@ async function createRoom(db, user, data) {
     return json({error: 'Введи назву до 100 символів і опис до 1000 символів.'}, 400);
   }
   const id = crypto.randomUUID();
-  const code = Array.from(crypto.getRandomValues(new Uint8Array(10)),
+  for(let attempt=0;attempt<8;attempt++){
+  const code = 'CTH-'+Array.from(crypto.getRandomValues(new Uint8Array(2)),
     value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
-  const result = await db.batch([
+  let result;
+  try{result = await db.batch([
     db.prepare(
       'INSERT INTO games (id, title, description, room_code, keeper_id) ' +
       "SELECT ?, ?, ?, ?, user_id FROM account_roles WHERE user_id = ? AND role IN ('admin', 'keeper')"
@@ -36,9 +38,11 @@ async function createRoom(db, user, data) {
       'INSERT INTO game_members (game_id, user_id, display_name, role) ' +
       "SELECT id, keeper_id, ?, 'keeper' FROM games WHERE id = ? AND keeper_id = ?"
     ).bind(memberName(user), id, user.id),
-  ]);
+  ]);}catch(error){if(/unique.*(?:room_code|games)/i.test(error.message))continue;throw error;}
   if (!result[0].meta.changes) return json({error: 'Створювати кімнати можуть ведучі й адміністратори.'}, 403);
   return json({id}, 201);
+  }
+  return json({error:'Не вдалося створити унікальний код. Спробуй ще раз.'},503);
 }
 
 function memberName(user) {
@@ -47,7 +51,11 @@ function memberName(user) {
 
 async function joinRoom(db, user, data) {
   const code = typeof data?.code === 'string' ? data.code.trim().toUpperCase() : '';
-  if (!/^[A-F0-9]{20}$/.test(code)) return json({error: 'Введи код запрошення з 20 символів.'}, 400);
+  if (!/^(?:CTH-[A-F0-9]{4}|[A-F0-9]{20})$/.test(code)) return json({error:'Введи код кімнати, наприклад CTH-A8DA.'},400);
+  await ensureRoomSchema(db);
+  const windowStart=Math.floor(Date.now()/60000);
+  const attempts=await db.prepare('INSERT INTO migration_join_attempts(user_id,window_start,attempts) VALUES(?,?,1) ON CONFLICT(user_id) DO UPDATE SET attempts=CASE WHEN window_start=excluded.window_start THEN attempts+1 ELSE 1 END,window_start=excluded.window_start RETURNING attempts').bind(user.id,windowStart).first();
+  if(attempts.attempts>10)return json({error:'Забагато спроб. Спробуй приєднатися через хвилину.'},429);
   const game = await db.prepare('SELECT id FROM games WHERE room_code = ?').bind(code).first();
   if (!game) return json({error: 'Кімнату за цим кодом не знайдено.'}, 404);
   await db.prepare(
@@ -80,6 +88,7 @@ const roomSchemas = new WeakMap();
 function ensureRoomSchema(db) {
   if (!roomSchemas.has(db)) {
     const initialization = (async () => {
+      await db.prepare('CREATE TABLE IF NOT EXISTS migration_join_attempts(user_id TEXT PRIMARY KEY NOT NULL REFERENCES site_users(id) ON DELETE CASCADE,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL)').run();
       await db.prepare(createMessages).run();
       await db.prepare(
         'CREATE INDEX IF NOT EXISTS migration_room_messages_game ON migration_room_messages(game_id, id)'
@@ -164,11 +173,8 @@ async function roomBoard(request, db, user, gameId) {
   return json({map, updated});
 }
 
-async function adminOverview(db, user) {
-  const admin = await db.prepare(
-    "SELECT 1 AS allowed FROM account_roles WHERE user_id = ? AND role = 'admin'"
-  ).bind(user.id).first();
-  if (!admin) return json({error: 'Цей розділ доступний адміністратору сайту.'}, 403);
+async function adminOverview(db, user, env) {
+  if(await accountRole(db,user.id,env)!=='admin')return json({error:'Цей розділ доступний адміністратору сайту.'},403);
 
   const [rooms, accounts] = await db.batch([
     db.prepare(
@@ -177,21 +183,22 @@ async function adminOverview(db, user) {
       'FROM games g JOIN site_users u ON u.id = g.keeper_id ORDER BY g.created_at DESC LIMIT 100'
     ),
     db.prepare(
-      "SELECT u.display_name, COALESCE(r.role, 'player') AS role " +
+      "SELECT u.id, u.display_name, COALESCE(r.role, 'player') AS role " +
       'FROM site_users u LEFT JOIN account_roles r ON r.user_id = u.id ' +
       'ORDER BY u.created_at DESC LIMIT 100'
     ),
   ]);
-  return json({rooms: rooms.results, accounts: accounts.results});
+  return json({rooms:rooms.results,accounts:accounts.results.map(u=>({...u,role:u.id===user.id?'admin':u.role==='admin'?'keeper':u.role}))});
 }
 
-export async function handleRooms(request, db, url) {
+export async function handleRooms(request, db, url, env={}) {
   try {
     if (request.method === 'POST' && request.headers.get('Origin') !== url.origin) {
       return json({error: 'Запит відхилено.'}, 403);
     }
     const user = await sessionUser(request, db);
     if (!user) return json({error: 'Спочатку увійди через Google.'}, 401);
+    await accountRole(db,user.id,env);
     const messageRoom = /^([a-f0-9-]{36})\/messages$/.exec(url.pathname.slice(route.length + 1));
     if (messageRoom && (request.method === 'GET' || request.method === 'POST')) {
       return await roomMessages(request, db, user, messageRoom[1]);
@@ -201,8 +208,8 @@ export async function handleRooms(request, db, url) {
       return await roomBoard(request, db, user, boardRoom[1]);
     }
     if (request.method === 'GET') {
-      if (url.pathname === route) return await listRooms(db, user);
-      if (url.pathname === route + '/admin') return await adminOverview(db, user);
+      if (url.pathname === route) return await listRooms(db, user, env);
+      if (url.pathname === route + '/admin') return await adminOverview(db, user, env);
       const id = url.pathname.slice(route.length + 1);
       if (/^[a-f0-9-]{36}$/.test(id)) return await roomMembers(db, user, id);
     }

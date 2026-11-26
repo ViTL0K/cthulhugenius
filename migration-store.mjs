@@ -1,9 +1,10 @@
+import { accountRole } from './site-account.mjs';
 import { sessionUser } from './google-auth.mjs';
 import { handleRooms } from './rooms.mjs';
 import { initialCards } from './rule-seed.mjs';
 
 const schemas = new WeakMap();
-const tables = new Set(['homepage_quotes','hidden_materials','private_notes','investigator_sheets','game_character_sheets','dice_rolls','room_messages','keeper_access_requests','game_events','covers','boards','files','broadcasts','presence','rules']);
+const tables = new Set(['homepage_quotes','hidden_materials','private_notes','investigator_sheets','game_character_sheets','dice_rolls','room_messages','keeper_access_requests','game_events','covers','boards','files','broadcasts','presence','rules','feedback']);
 const json = (data,status=200) => Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const fail = (message,status=400) => { throw Object.assign(new Error(message),{status}); };
 const now = () => new Date().toISOString();
@@ -20,9 +21,9 @@ async function ensure(db) {
 export async function context(request,env) {
   const user=await sessionUser(request,env.DB);if(!user)fail('Спочатку увійди через Google.',401);
   await ensure(env.DB);
-  const role=await env.DB.prepare('SELECT role FROM account_roles WHERE user_id=?').bind(user.id).first();
+  const role=await accountRole(env.DB,user.id,env);
   const {results:members}=await env.DB.prepare('SELECT * FROM game_members WHERE user_id=?').bind(user.id).all();
-  return {db:env.DB,user,role:role?.role||'player',members};
+  return {db:env.DB,user,role,members};
 }
 const member=(ctx,game) => ctx.members.find(m=>m.game_id===game);
 function access(ctx,game,keeper=false) {const m=member(ctx,game);if(!m||keeper&&m.role!=='keeper')fail('Кімната недоступна.',403);return m;}
@@ -43,6 +44,7 @@ async function event(ctx,game,event_type){await put(ctx,'game_events',{game_id:g
 function visible(ctx,table,row){
   const m=member(ctx,row.game_id);
   if(['homepage_quotes'].includes(table))return true;
+  if(table==='feedback')return ctx.role==='admin'||row.user_id===ctx.user.id;
   if(table==='keeper_access_requests')return ctx.role==='admin'||row.user_id===ctx.user.id;
   if(!m)return false;
   if(table==='private_notes')return m.role==='keeper'&&row.user_id===ctx.user.id;
@@ -62,7 +64,7 @@ function matches(row,filters=[]) {return filters.every(([op,key,value])=>{
   fail('Непідтримуваний фільтр.');
 });}
 async function rows(ctx,table) {
-  if(table==='account_roles'){admin(ctx);return (await ctx.db.prepare('SELECT * FROM account_roles').all()).results;}
+  if(table==='account_roles'){admin(ctx);return (await ctx.db.prepare('SELECT * FROM account_roles').all()).results.map(r=>({...r,role:r.user_id===ctx.user.id?'admin':r.role==='admin'?'keeper':r.role}));}
   if(table==='games'){
     const {results}=await ctx.db.prepare('SELECT g.* FROM games g JOIN game_members m ON m.game_id=g.id WHERE m.user_id=?').bind(ctx.user.id).all();
     const covers=await raw(ctx,'covers');return results.map(g=>({...g,cover_data:covers.find(c=>c.game_id===g.id)?.cover_data||''}));
@@ -79,6 +81,7 @@ async function rows(ctx,table) {
   return data;
 }
 function canWrite(ctx,table,row,op){
+  if(table==='feedback'){if(ctx.role==='admin')return;if(op!=='insert'||row.user_id!==ctx.user.id)fail('Запит недоступний.',403);return;}
   if(table==='homepage_quotes'){if(!['admin','keeper'].includes(ctx.role))fail('Потрібні права ведучого.',403);return;}
   if(table==='keeper_access_requests'){if(ctx.role==='admin')return;if(op!=='insert'||row.user_id!==ctx.user.id)fail('Запит недоступний.',403);return;}
   const m=access(ctx,row.game_id);
@@ -99,7 +102,7 @@ async function query(ctx,q){
     return data;
   }
   if(table==='account_roles'){
-    admin(ctx);if(op!=='upsert'||!['keeper','admin'].includes(q.values?.role))fail('Некоректна роль.');
+    admin(ctx);if(op!=='upsert'||q.values?.role!=='keeper'||q.values?.user_id===ctx.user.id)fail('Некоректна роль.');
     await ctx.db.prepare('INSERT INTO account_roles(user_id,role,assigned_by) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET role=excluded.role,assigned_by=excluded.assigned_by').bind(q.values.user_id,q.values.role,ctx.user.id).run();return [q.values];
   }
   if(!tables.has(table))fail('Невідомий розділ.',404);
@@ -150,11 +153,12 @@ async function validateMessage(ctx,table,row){
   return {...row,visibility,recipient_id:recipient,[table==='dice_rolls'?'actor_id':'sender_id']:ctx.user.id};
 }
 async function roomCall(ctx,request,env,path,data){
-  const response=await handleRooms(new Request(new URL('/api/migration/rooms'+path,request.url),{method:data?'POST':'GET',headers:{Cookie:request.headers.get('Cookie')||'',Origin:new URL(request.url).origin,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined}),env.DB,new URL('/api/migration/rooms'+path,request.url));
+  const response=await handleRooms(new Request(new URL('/api/migration/rooms'+path,request.url),{method:data?'POST':'GET',headers:{Cookie:request.headers.get('Cookie')||'',Origin:new URL(request.url).origin,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined}),env.DB,new URL('/api/migration/rooms'+path,request.url),env);
   const result=await response.json();if(!response.ok)fail(result.error,response.status);return result;
 }
 async function rpc(ctx,name,a,request,env){
   if(name==='my_account_role')return ctx.role;
+  if(name==='submit_feedback'){const text=String(a.text||'').trim();if(!text||text.length>4000)fail('Вкажи опис до 4000 символів.');return put(ctx,'feedback',{user_id:ctx.user.id,display_name:ctx.user.display_name,kind:String(a.kind||'Повідомлення').slice(0,100),text,status:'new',created_at:now()});}
   if(name==='list_my_games'){const r=await roomCall(ctx,request,env,'');return r.rooms.map(g=>({...g,room_code:g.code}));}
   if(name==='create_game')return roomCall(ctx,request,env,'',{title:a.game_title,description:a.game_description});
   if(name==='join_game')return roomCall(ctx,request,env,'/join',{code:a.code_to_join});
@@ -195,7 +199,8 @@ async function rpc(ctx,name,a,request,env){
     await event(ctx,game,table==='room_messages'?'messages-cleared':'rolls-cleared');return null;
   }
   if(name==='keeper_delete_game'){
-    await ctx.db.batch([ctx.db.prepare('DELETE FROM migration_file_chunks WHERE path IN (SELECT record_id FROM migration_records WHERE table_name=\'files\' AND game_id=?)').bind(game),ctx.db.prepare('DELETE FROM migration_records WHERE game_id=?').bind(game),ctx.db.prepare('DELETE FROM game_members WHERE game_id=?').bind(game),ctx.db.prepare('DELETE FROM games WHERE id=? AND keeper_id=?').bind(game,ctx.user.id)]);return null;
+    const owner=await ctx.db.prepare('SELECT keeper_id FROM games WHERE id=?').bind(game).first();if(ctx.role!=='admin'&&owner?.keeper_id!==ctx.user.id)fail('Видаляти пригоду може її власник або адміністратор.',403);
+    await ctx.db.batch([ctx.db.prepare('DELETE FROM migration_file_chunks WHERE path IN (SELECT record_id FROM migration_records WHERE table_name=\'files\' AND game_id=?)').bind(game),ctx.db.prepare('DELETE FROM migration_records WHERE game_id=?').bind(game),ctx.db.prepare('DELETE FROM game_members WHERE game_id=?').bind(game),ctx.db.prepare("DELETE FROM games WHERE id=? AND (keeper_id=? OR ?='admin')").bind(game,ctx.user.id,ctx.role)]);return null;
   }
   fail('Невідома дія.',404);
 }
@@ -252,12 +257,78 @@ async function rulesApi(ctx,request,url){
   if(!Array.isArray(data.examples)||data.examples.length>10||data.examples.some(e=>!Number.isFinite(Number(e.value))||Number(e.value)<1||Number(e.value)>99))fail('Перевір приклади кидків.');
   const card=await put(ctx,'rules',{...map.get(id),title:data.title.trim(),body:data.body,visibility:data.visibility,examples:data.examples,updated_at:now()},id);return json({card});
 }
+async function adminApi(ctx,request,url,env){
+  admin(ctx);
+  const tail=url.pathname.slice('/api/migration/admin/'.length);
+  if(request.method==='GET'&&tail==='overview'){
+    const [games,users,totals]=await ctx.db.batch([
+      ctx.db.prepare(`SELECT g.*,u.display_name AS keeper_name,
+        (SELECT COUNT(*) FROM game_members m WHERE m.game_id=g.id) AS member_count,
+        (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name IN ('investigator_sheets','game_character_sheets')) AS sheet_count,
+        (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='hidden_materials') AS material_count,
+        (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='files') AS file_count
+        FROM games g JOIN site_users u ON u.id=g.keeper_id ORDER BY g.created_at DESC LIMIT 500`),
+      ctx.db.prepare("SELECT u.id,u.display_name,u.email,u.created_at,COALESCE(r.role,'player') AS role FROM site_users u LEFT JOIN account_roles r ON r.user_id=u.id ORDER BY u.created_at DESC LIMIT 500"),
+      ctx.db.prepare('SELECT table_name,COUNT(*) AS count FROM migration_records GROUP BY table_name')
+    ]);
+    const accounts=users.results.map(u=>({...u,role:u.id===ctx.user.id?'admin':u.role==='admin'?'keeper':u.role}));
+    const [personal,prepared,requests,feedback]=await Promise.all(['investigator_sheets','game_character_sheets','keeper_access_requests','feedback'].map(t=>raw(ctx,t)));
+    const sheets=[...personal.map(s=>({...s,kind:'personal'})),...prepared.map(s=>({...s,kind:'prepared'}))].map(s=>({id:s.id,game_id:s.game_id,user_id:s.user_id||s.assigned_user_id||null,kind:s.kind,name:s.sheet?.Investigators_Name||s.sheet?.char_name||s.character_name||'Персонаж без імені',updated_at:s.updated_at||s.created_at}));
+    return json({user:ctx.user,rooms:games.results,accounts,sheets,requests,feedback,counts:Object.fromEntries(totals.results.map(t=>[t.table_name,t.count]))});
+  }
+  if(request.method!=='POST')fail('Метод недоступний.',405);
+  const data=await request.json().catch(()=>null);if(!data||typeof data!=='object')fail('Некоректний запит.');
+  if(tail==='roles'){
+    const target=typeof data.user_id==='string'?data.user_id:'';
+    if(target===ctx.user.id)fail('Роль власника сайту захищена.',403);
+    if(!['player','keeper'].includes(data.role))fail('Можна призначити гравця або ведучого.');
+    if(!await ctx.db.prepare('SELECT id FROM site_users WHERE id=?').bind(target).first())fail('Акаунт не знайдено.',404);
+    if(data.role==='player')await ctx.db.prepare('DELETE FROM account_roles WHERE user_id=?').bind(target).run();
+    else await ctx.db.prepare("INSERT INTO account_roles(user_id,role,assigned_by) VALUES(?,'keeper',?) ON CONFLICT(user_id) DO UPDATE SET role='keeper',assigned_by=excluded.assigned_by").bind(target,ctx.user.id).run();
+    return json({ok:true});
+  }
+  if(tail==='requests'){
+    const item=(await raw(ctx,'keeper_access_requests')).find(r=>r.id===data.id);
+    if(!item)fail('Запит не знайдено.',404);
+    if(!['approve','reject'].includes(data.action))fail('Невідома дія.');
+    if(item.user_id===ctx.user.id)fail('Права адміністратора вже надані.');
+    if(data.action==='approve')await ctx.db.prepare("INSERT INTO account_roles(user_id,role,assigned_by) VALUES(?,'keeper',?) ON CONFLICT(user_id) DO UPDATE SET role='keeper',assigned_by=excluded.assigned_by").bind(item.user_id,ctx.user.id).run();
+    await remove(ctx,'keeper_access_requests',item.id);return json({ok:true});
+  }
+  if(tail==='feedback'){
+    const item=(await raw(ctx,'feedback')).find(r=>r.id===data.id);if(!item)fail('Повідомлення не знайдено.',404);
+    if(!['new','reviewed','done'].includes(data.status))fail('Некоректний стан.');
+    await put(ctx,'feedback',{...item,status:data.status},item.id);return json({ok:true});
+  }
+  if(tail==='rooms')return json({room:await rpc(ctx,'create_game',{game_title:data.title,game_description:data.description||''},request,env)});
+  const room=/^rooms\/([a-f0-9-]{36})\/(open|update)$/.exec(tail);
+  if(room){
+    const game=await ctx.db.prepare('SELECT * FROM games WHERE id=?').bind(room[1]).first();if(!game)fail('Кімнату не знайдено.',404);
+    if(room[2]==='open'){
+      const name=Array.from(ctx.user.display_name.trim()||'Адміністратор').slice(0,24).join('');
+      await ctx.db.prepare("INSERT INTO game_members(game_id,user_id,display_name,role) VALUES(?,?,?,'keeper') ON CONFLICT(game_id,user_id) DO UPDATE SET role='keeper'").bind(game.id,ctx.user.id,name).run();
+      await event(ctx,game.id,'member-updated');return json({url:'/migration/?workspace=1&room='+game.id});
+    }
+    const title=typeof data.title==='string'?data.title.trim():'';const description=typeof data.description==='string'?data.description.trim():'';
+    if(!title||title.length>100||description.length>1000)fail('Вкажи назву до 100 символів і опис до 1000 символів.');
+    await ctx.db.prepare('UPDATE games SET title=?,description=? WHERE id=?').bind(title,description,game.id).run();
+    await event(ctx,game.id,'room-updated');return json({ok:true});
+  }
+  fail('Сторінку не знайдено.',404);
+}
+
 export async function handleMigration(request,env){
   try{
     const url=new URL(request.url);
     if(!['GET','HEAD'].includes(request.method)&&request.headers.get('Origin')!==url.origin)fail('Запит відхилено.',403);
     if(Number(request.headers.get('Content-Length'))>27000000)fail('Файл завеликий.',413);
+    if(url.pathname==='/api/migration/entry'&&request.method==='GET'){
+      await ensure(env.DB);
+      const {results}=await env.DB.prepare("SELECT data FROM migration_records WHERE table_name='homepage_quotes' ORDER BY seq LIMIT 100").all();
+      return json({quotes:results.map(r=>JSON.parse(r.data)).map(r=>({id:r.id,text:r.quote_text,author:r.author||'',date:r.quote_date||''}))});
+    }
     const ctx=await context(request,env);
+    if(url.pathname.startsWith('/api/migration/admin/'))return await adminApi(ctx,request,url,env);
     if(url.pathname==='/api/migration/files')return await fileApi(ctx,request,url);
     if(url.pathname.startsWith('/api/portal-rules'))return await rulesApi(ctx,request,url);
     if(url.pathname==='/api/migration/bridge'&&request.method==='POST'){

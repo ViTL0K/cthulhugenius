@@ -8,7 +8,7 @@ import worker from '../worker.mjs';
 import { D1 } from './d1-helper.mjs';
 const origin='https://cthulhugenius.technobio-portalworkersdev.workers.dev';
 const db=new D1();
-const env={DB:db,GOOGLE_CLIENT_ID:'test',GOOGLE_CLIENT_SECRET:'test',GOOGLE_REDIRECT_URI:origin+'/api/migration/auth/google/callback',ASSETS:{fetch:()=>new Response('asset')}};
+const env={ADMIN_GOOGLE_EMAIL_SHA256:createHash('sha256').update('keeper@example.com').digest('hex'),DB:db,GOOGLE_CLIENT_ID:'test',GOOGLE_CLIENT_SECRET:'test',GOOGLE_REDIRECT_URI:origin+'/api/migration/auth/google/callback',ASSETS:{fetch:()=>new Response('asset')}};
 const tokens={};
 for(const [id,role] of [['keeper','admin'],['player','player'],['other','player']]){
   db.db.prepare('INSERT INTO site_users(id,google_subject,email,display_name) VALUES(?,?,?,?)').run(id,id,id+'@example.com',id);
@@ -30,7 +30,7 @@ test('Google session and non-destructive D1 migration',async()=>{
   assert.equal(cookie,'__Host-poklik-session');
   const session=await call('keeper',null,'/api/migration/auth/session','GET');assert.equal(session.user.id,'keeper');
   const created=await rpc('keeper','create_game',{game_title:'Тестова пригода',game_description:'Перевірка'});assert.equal(created.status,200,JSON.stringify(created));const game=created.data.id;
-  const list=await rpc('keeper','list_my_games');assert.equal(list.data[0].id,game);assert.equal(list.data[0].room_code.length,20);
+  const list=await rpc('keeper','list_my_games');assert.equal(list.data[0].id,game);assert.match(list.data[0].room_code,/^CTH-[A-F0-9]{4}$/);
   assert.equal((await rpc('player','create_game',{game_title:'Forbidden'})).status,403);
   await rpc('player','join_game',{code_to_join:list.data[0].room_code});
   assert.equal((await rpc('other','get_room_state',{target_game:game})).status,403);

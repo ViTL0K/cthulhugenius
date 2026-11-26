@@ -1,5 +1,9 @@
-/* Preserve original layout with Google-only entry. */
-.google-auth > :not(a):not([data-google-heading]):not(#entryError) {display:none!important}
+/* Google sign-in with the original two-column portal entry and compact controls. */
+.google-auth > :not(a):not([data-google-heading]):not(.theme-select-card):not([data-google-description]):not(#entryError) {display:none!important}
 .google-auth > a {display:block;text-align:center;text-decoration:none}
+.google-auth > .theme-select-card {display:block!important}
 .entry-card .auth-navigation,.entry-card .auth-tabs {display:none!important}
-body {font-size:16px}
+body {font-size:15px}
+.btn {padding:8px 11px}
+.room-controls .btn {font-size:12px;padding:7px 10px}
+[data-admin-link]{text-decoration:none;font:12px system-ui,sans-serif}

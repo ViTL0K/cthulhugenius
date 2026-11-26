@@ -23,7 +23,7 @@ createServer(async(req,res)=>{
   const headers=new Headers(req.headers);if(!headers.has('cookie'))headers.set('cookie','__Host-poklik-session='+token);
   if(headers.has('origin'))headers.set('origin',origin);
   const request=new Request(origin+req.url,{method:req.method,headers,body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks)});
-  const response=await worker.fetch(request,{DB,ASSETS,GOOGLE_CLIENT_ID:'local',GOOGLE_CLIENT_SECRET:'local',GOOGLE_REDIRECT_URI:origin+'/api/migration/auth/google/callback'});
+  const response=await worker.fetch(request,{DB,ASSETS,ADMIN_GOOGLE_EMAIL_SHA256:createHash('sha256').update('keeper@example.com').digest('hex'),GOOGLE_CLIENT_ID:'local',GOOGLE_CLIENT_SECRET:'local',GOOGLE_REDIRECT_URI:origin+'/api/migration/auth/google/callback'});
   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
  }catch(e){console.error(e);res.writeHead(500);res.end('Local QA server error')}
 }).listen(Number(process.env.PORT||process.argv[process.argv.indexOf('--port')+1])||3000,'0.0.0.0');
