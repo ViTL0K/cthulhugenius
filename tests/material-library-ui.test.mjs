@@ -11,7 +11,7 @@ function dom(fixture,user,storage=new Map()){
  const {window,document}=parseHTML('<html><body><section id="mount"></section></body></html>');
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return [...this.querySelectorAll('option')].find(o=>o.hasAttribute('selected'))?.value||this.querySelector('option')?.value||'';},set(v){for(const o of this.querySelectorAll('option'))o.toggleAttribute('selected',o.value===String(v));}});
  Object.defineProperty(window.HTMLInputElement.prototype,'checked',{configurable:true,get(){return this.hasAttribute('checked');},set(v){this.toggleAttribute('checked',Boolean(v));}});
- window.HTMLElement.prototype.showModal=function(){this.open=true;this.setAttribute('open','');};window.HTMLElement.prototype.close=function(){this.open=false;this.removeAttribute('open');};
+ window.HTMLElement.prototype.showModal=function(){this.open=true;this.setAttribute('open','');};window.HTMLElement.prototype.close=function(){if(!this.open)return;this.open=false;this.removeAttribute('open');this.dispatchEvent(new window.Event('close'));};
  const draws=[];window.HTMLCanvasElement.prototype.getContext=()=>({fillRect(){},fillText(){},drawImage(...args){draws.push(args);}});window.HTMLCanvasElement.prototype.toDataURL=()=>tiny;
  class Image{constructor(){this.naturalWidth=800;this.naturalHeight=1200;}async decode(){}}
  const ticks=[],errors=[];const fakeWindow={};
@@ -33,23 +33,23 @@ test('player navigates nested cards and a revoked card disappears from the detai
  ui.library.dispose();
 });
 test('keeper creates a targeted entry through the editor and the API persists its access and text',async()=>{
- const fixture=setup(),ui=dom(fixture,'keeper');await flush();ui.document.querySelector('[aria-label="Додати вкладку"]').click();await flush();
+ const fixture=setup(),ui=dom(fixture,'keeper');await flush();ui.document.querySelector('[aria-label="Додати матеріал"]').click();await flush();
  const form=ui.document.querySelector('.library-editor form');assert.ok(form);
- form.querySelector('input').value='Артур Вілмотт';form.querySelector('select').value='entry';form.querySelector('textarea').value='Опис персонажа';form.querySelector('textarea').dispatchEvent(new ui.window.Event('input',{bubbles:true}));
+ form.querySelector('input').value='Артур Вілмотт';form.querySelector('select').value='entry';form.querySelector('select').dispatchEvent(new ui.window.Event('change'));form.querySelector('.library-block-editor textarea').value='Опис персонажа';form.querySelector('.library-block-editor textarea').dispatchEvent(new ui.window.Event('input',{bubbles:true}));
  const selects=[...form.querySelectorAll('select')];selects.at(-1).value='selected';selects.at(-1).dispatchEvent(new ui.window.Event('change'));
  form.querySelector('fieldset input[value="alice"]').checked=true;
  form.dispatchEvent(new ui.window.Event('submit',{bubbles:true,cancelable:true}));await flush();
- assert.equal(ui.errors.length,0);assert.equal(ui.document.querySelector('.library-editor').open,false);
+ assert.equal(ui.errors.length,0);assert.equal(ui.document.querySelector('.library-editor'),null);
  const list=await fixture.call('alice');assert.equal(list.cards[0].title,'Артур Вілмотт');assert.equal((await fixture.call('bob')).cards.length,0);
  const detail=(await fixture.call('keeper','/cards/'+list.cards[0].id)).card;assert.equal(detail.kind,'entry');assert.equal(detail.body,'Опис персонажа');assert.deepEqual(detail.targets,['alice']);ui.library.dispose();
 });
 test('an outdated editor preserves unsaved text and reports a conflict instead of overwriting another keeper',async()=>{
  const fixture=setup();let entry=(await fixture.create({title:'Підказка',kind:'entry',audience:'hidden',body:'Початковий опис',cover_source:tiny,cover_thumb:tiny,crop:{zoom:2,x:.2,y:.8}})).card;
  const ui=dom(fixture,'keeper');await flush();ui.document.querySelector('.library-card').click();await flush();[...ui.document.querySelectorAll('button')].find(b=>b.textContent==='Редагувати картку').click();await flush();
- const form=ui.document.querySelector('.library-editor form');form.querySelector('textarea').value='Мій незбережений опис';
+ const form=ui.document.querySelector('.library-editor form');form.querySelector('.library-block-editor textarea').value='Мій незбережений опис';form.querySelector('.library-block-editor textarea').dispatchEvent(new ui.window.Event('input',{bubbles:true}));
  entry=(await fixture.edit(entry,{body:'Зміна в іншому вікні'})).card;
  form.dispatchEvent(new ui.window.Event('submit',{bubbles:true,cancelable:true}));await flush();
- assert.equal(ui.document.querySelector('.library-editor').open,true);assert.equal(form.querySelector('textarea').value,'Мій незбережений опис');assert.match(form.querySelector('.library-editor-status').textContent,/змінена/);
+ assert.equal(ui.document.querySelector('.library-editor').open,true);assert.equal(form.querySelector('.library-block-editor textarea').value,'Мій незбережений опис');assert.match(form.querySelector('.library-editor-status').textContent,/змінена/);
  assert.equal((await fixture.call('keeper','/cards/'+entry.id)).card.body,'Зміна в іншому вікні');ui.library.dispose();
 });
 
@@ -82,7 +82,7 @@ test('materials shortcut opens a separate browser and returns the library to its
  const fixture=setup();await fixture.create({title:'Локації',audience:'all'});const ui=dom(fixture,'alice');await flush();
  ui.library.show();await flush();const browser=ui.document.querySelector('.library-browser');assert.equal(browser.open,true);assert.equal(browser.querySelector('.library-card-title').textContent,'Локації');
  assert.equal(ui.document.querySelector('#mount .material-library'),null);
- browser.close();browser.dispatchEvent(new ui.window.Event('close'));assert.ok(ui.document.querySelector('#mount .material-library'));assert.equal(ui.document.querySelector('.library-browser'),null);ui.library.dispose();
+ browser.close();assert.ok(ui.document.querySelector('#mount .material-library'));assert.equal(ui.document.querySelector('.library-browser'),null);ui.library.dispose();
 });
 
 test('loaded materials survive network errors and malformed replies, but a valid revocation removes them',async()=>{
@@ -112,4 +112,55 @@ test('keeper drags a card to the end of the current list and players cannot reor
 
 test('keeper snapshots are never reused after switching the same account to a player role',async()=>{
  const f=setup();await f.create({title:'Прихований секрет',audience:'hidden'});const ui=dom(f,'keeper');await flush();ui.library.activate({gameId:game,userId:'keeper',role:'player'});assert.equal(ui.document.querySelector('.library-card-title'),null);ui.library.dispose();
+});
+
+const namedButton=(host,name)=>[...host.querySelectorAll('button')].find(b=>b.textContent===name);
+function type(ui,input,value){input.value=value;input.dispatchEvent(new ui.window.Event('input',{bubbles:true}));}
+function select(ui,input,value){input.value=value;input.dispatchEvent(new ui.window.Event('change',{bubbles:true}));}
+const submit=(ui,form)=>form.dispatchEvent(new ui.window.Event('submit',{bubbles:true,cancelable:true}));
+
+test('folder form creates and manages leaf cards without losing its introduction or nesting',async()=>{
+ const f=setup(),ui=dom(f,'keeper');await flush();ui.document.querySelector('[aria-label="Додати матеріал"]').click();await flush();
+ let parentEditor=ui.document.querySelector('.library-editor[open]'),form=parentEditor.querySelector('form');
+ assert.deepEqual([...form.querySelector('[aria-label="Тип матеріалу"]').options].map(o=>o.textContent),['Картка з підкартками','Кінцева картка з матеріалом']);
+ assert.equal(form.querySelector('.library-block-editor').hidden,true);assert.equal(form.querySelector('.library-children-editor').hidden,false);
+ namedButton(form,'+ Створити дод. матеріал').click();await flush();assert.equal((await f.call('keeper')).cards.length,0);assert.match(form.querySelector('.library-editor-status').textContent,/назву/);
+ type(ui,form.querySelector('[aria-label="Назва матеріалу"]'),'Дім Корбіта');type(ui,form.querySelector('[aria-label="Вступний опис"]'),'Бостон. Біля будинку тихо.');type(ui,form.querySelector('[aria-label="Категорія матеріалу"]'),'Локації');select(ui,form.querySelector('[aria-label="Доступ для гравців"]'),'all');
+ namedButton(form,'+ Створити дод. матеріал').click();await flush();
+ let childEditor=[...ui.document.querySelectorAll('.library-editor[open]')].at(-1),childForm=childEditor.querySelector('form');
+ assert.notEqual(childEditor,parentEditor);assert.equal(parentEditor.open,true);assert.equal(childForm.querySelector('[aria-label="Тип матеріалу"]').value,'entry');assert.equal(childForm.querySelector('[aria-label="Тип матеріалу"]').disabled,true);assert.equal(childForm.querySelector('.library-children-editor').hidden,true);assert.equal(childForm.querySelector('.library-intro-field').hidden,true);assert.equal(childForm.querySelector('.library-block-editor').hidden,false);
+ type(ui,childForm.querySelector('[aria-label="Назва матеріалу"]'),'Лист Нотта');type(ui,childForm.querySelector('.library-block-editor textarea'),'Перший абзац');namedButton(childForm,'+ Додати текст').click();type(ui,[...childForm.querySelectorAll('.library-block-editor textarea')].at(-1),'Другий абзац');select(ui,childForm.querySelector('[aria-label="Доступ для гравців"]'),'selected');childForm.querySelector('input[value="alice"]').checked=true;submit(ui,childForm);await flush();
+ assert.equal(parentEditor.open,true);assert.equal(ui.document.querySelectorAll('.library-editor[open]').length,1);assert.match(form.querySelector('.library-children-list').textContent,/Лист Нотта/);
+ const root=(await f.call('keeper')).cards;assert.equal(root.length,1);let folder=(await f.call('keeper','/cards/'+root[0].id)).card;assert.equal(folder.kind,'category');assert.equal(folder.body,'Бостон. Біля будинку тихо.');assert.deepEqual(folder.blocks,[]);
+ let child=(await f.call('keeper','?parent='+folder.id)).cards[0];let detail=(await f.call('keeper','/cards/'+child.id)).card;assert.equal(detail.parent_id,folder.id);assert.deepEqual(detail.blocks.map(b=>b.text),['Перший абзац','Другий абзац']);assert.deepEqual(detail.targets,['alice']);assert.equal((await f.call('bob','/cards/'+child.id)).status,404);
+ namedButton(form.querySelector('.library-child-row'),'Редагувати').click();await flush();childForm=[...ui.document.querySelectorAll('.library-editor[open]')].at(-1).querySelector('form');type(ui,childForm.querySelector('.library-block-editor textarea'),'Оновлений абзац');submit(ui,childForm);await flush();assert.equal((await f.call('keeper','/cards/'+child.id)).card.blocks[0].text,'Оновлений абзац');
+ form.querySelector('.library-child-access').click();await flush();namedButton(ui.document.querySelector('.library-access-popup'),'Відкрити всім').click();await flush();assert.equal((await f.call('bob','/cards/'+child.id)).status,200);assert.match(form.querySelector('.library-child-row').textContent,/Відкрито всім/);
+ namedButton(form.querySelector('.library-child-row'),'Видалити').click();await flush();assert.equal((await f.call('keeper','/cards/'+child.id)).status,404);assert.match(form.querySelector('.library-children-list').textContent,/Підкарток ще немає/);
+ submit(ui,form);await flush();assert.equal(ui.document.querySelector('.library-editor[open]'),null);ui.document.querySelector('.library-card').click();await flush();namedButton(ui.document.querySelector('.library-folder-tools'),'Редагувати картку').click();await flush();form=ui.document.querySelector('.library-editor[open] form');type(ui,form.querySelector('[aria-label="Вступний опис"]'),'Новий вступ');submit(ui,form);await flush();folder=(await f.call('keeper','/cards/'+folder.id)).card;assert.equal(folder.parent_id,null);assert.equal(folder.body,'Новий вступ');assert.equal(ui.errors.length,0);ui.library.dispose();
+});
+
+test('players see a centered empty state and only individually allowed children of an allowed folder',async()=>{
+ const f=setup();await f.create({title:'Таємний корінь',audience:'hidden',category:'Таємна категорія'});let ui=dom(f,'alice');await flush();assert.equal(ui.document.querySelector('.library-empty-player').textContent,'Вартовий ще не відкрив вам жодних матеріалів. Очікуйте на зачіпки під час розслідування');assert.ok(!ui.document.body.textContent.includes('Таємний корінь'));assert.ok(!ui.document.body.textContent.includes('Таємна категорія'));ui.library.dispose();
+ let folder=(await f.create({title:'Дім Корбіта',body:'Вступ локації',audience:'all',cover_source:tiny,cover_thumb:tiny})).card;await f.create({title:'Прихована кімната',kind:'entry',parent_id:folder.id,audience:'hidden'});let child=(await f.create({title:'Особистий лист',kind:'entry',parent_id:folder.id,audience:'selected',targets:['alice'],blocks:[{type:'text',text:'Текст листа'},{type:'image',src:tiny,size:'large'}]})).card;
+ ui=dom(f,'alice');await flush();assert.deepEqual([...ui.document.querySelectorAll('.library-card-title')].map(n=>n.textContent),['Дім Корбіта']);ui.document.querySelector('.library-card').click();await flush();assert.match(ui.document.querySelector('.library-folder-intro').textContent,/Вступ локації/);assert.deepEqual([...ui.document.querySelectorAll('.library-card-title')].map(n=>n.textContent),['Особистий лист']);assert.ok(!ui.document.body.textContent.includes('Прихована кімната'));ui.document.querySelector('.library-card').click();await flush();assert.equal(ui.document.querySelector('.library-detail .library-prose').textContent,'Текст листа');assert.ok(ui.document.querySelector('.library-image-large'));
+ folder=(await f.edit(folder,{audience:'hidden'})).card;ui.ticks[0]();await flush();assert.equal(ui.document.querySelector('.library-detail'),null);assert.equal(ui.document.querySelector('.library-card'),null);assert.equal((await f.call('alice','/cards/'+child.id)).status,404);ui.library.dispose();
+});
+
+test('legacy folder blocks remain readable and move to a leaf only after successful saving',async()=>{
+ const f=setup(),blocks=[{type:'text',text:'Давній вступ'},{type:'image',src:tiny,size:'small'},{type:'text',text:'Текст записки'}];const folder=(await f.create({title:'Старий дім',kind:'category',body:'Давній вступ',blocks,audience:'all'})).card;
+ const ui=dom(f,'keeper');await flush();ui.document.querySelector('.library-card').click();await flush();assert.match(ui.document.querySelector('.library-legacy-content').textContent,/Текст записки/);namedButton(ui.document.querySelector('.library-folder-tools'),'Редагувати картку').click();await flush();const parentForm=ui.document.querySelector('.library-editor[open] form');assert.equal(parentForm.querySelector('.library-block-editor').hidden,true);namedButton(parentForm,'Перенести попередній вміст у підкартку').click();await flush();let childEditor=[...ui.document.querySelectorAll('.library-editor[open]')].at(-1);assert.equal(childEditor.querySelectorAll('.library-edit-block').length,3);
+ namedButton(childEditor,'Скасувати').click();await flush();assert.deepEqual((await f.call('keeper','/cards/'+folder.id)).card.blocks,blocks);assert.equal((await f.call('keeper','?parent='+folder.id)).cards.length,0);
+ namedButton(parentForm,'Перенести попередній вміст у підкартку').click();await flush();childEditor=[...ui.document.querySelectorAll('.library-editor[open]')].at(-1);submit(ui,childEditor.querySelector('form'));await flush();const children=(await f.call('keeper','?parent='+folder.id)).cards;assert.equal(children.length,1);const saved=(await f.call('keeper','/cards/'+children[0].id)).card;assert.deepEqual(saved.blocks,blocks);assert.equal(saved.kind,'entry');assert.equal(saved.parent_id,folder.id);assert.equal(saved.audience,'all');assert.deepEqual((await f.call('keeper','/cards/'+folder.id)).card.blocks,[]);assert.equal((await f.call('keeper','/cards/'+folder.id)).card.body,'Давній вступ');assert.equal(parentForm.querySelector('.library-legacy-editor').hidden,true);ui.library.dispose();
+});
+
+test('type switching changes the form and keeps both draft text and the children restriction',async()=>{
+ const f=setup(),ui=dom(f,'keeper');await flush();ui.document.querySelector('[aria-label="Додати матеріал"]').click();await flush();let form=ui.document.querySelector('.library-editor[open] form');type(ui,form.querySelector('[aria-label="Вступний опис"]'),'Чернетка вступу');select(ui,form.querySelector('[aria-label="Тип матеріалу"]'),'entry');assert.equal(form.querySelector('.library-intro-field').hidden,true);assert.equal(form.querySelector('.library-children-editor').hidden,true);assert.equal(form.querySelector('.library-block-editor').hidden,false);assert.equal(form.querySelector('.library-block-editor textarea').value,'Чернетка вступу');select(ui,form.querySelector('[aria-label="Тип матеріалу"]'),'category');assert.equal(form.querySelector('[aria-label="Вступний опис"]').value,'Чернетка вступу');
+ ui.library.activate({gameId:game,userId:'bob',role:'player'});assert.equal(ui.document.querySelector('.library-editor[open]'),null);ui.library.dispose();
+});
+
+test('a folder with children cannot become a leaf and failed child saving keeps both editors and old content',async()=>{
+ const f=setup(),blocks=[{type:'text',text:'Вступ'},{type:'image',src:tiny,size:'medium'}];const folder=(await f.create({title:'Локація',body:'Вступ',blocks,audience:'all'})).card;const existing=(await f.create({title:'Існуюча підкартка',kind:'entry',parent_id:folder.id,audience:'all'})).card;
+ const ui=dom(f,'keeper');await flush();ui.document.querySelector('.library-card').click();await flush();namedButton(ui.document.querySelector('.library-folder-tools'),'Редагувати картку').click();await flush();const parentForm=ui.document.querySelector('.library-editor[open] form');select(ui,parentForm.querySelector('[aria-label="Тип матеріалу"]'),'entry');submit(ui,parentForm);await flush();assert.match(parentForm.querySelector('.library-editor-status').textContent,/має підкартки/);assert.equal((await f.call('keeper','/cards/'+folder.id)).card.kind,'category');
+ select(ui,parentForm.querySelector('[aria-label="Тип матеріалу"]'),'category');namedButton(parentForm,'Перенести попередній вміст у підкартку').click();await flush();const childForm=[...ui.document.querySelectorAll('.library-editor[open]')].at(-1).querySelector('form');
+ ui.network(()=>Promise.resolve(Response.json({error:'Немає з’єднання для збереження'},{status:503})));submit(ui,childForm);await flush();assert.equal(ui.document.querySelectorAll('.library-editor[open]').length,2);assert.match(childForm.querySelector('.library-editor-status').textContent,/Немає з’єднання/);assert.equal(childForm.querySelector('.library-edit-block textarea').value,'Вступ');assert.deepEqual((await f.call('keeper','/cards/'+folder.id)).card.blocks,blocks);assert.deepEqual((await f.call('keeper','?parent='+folder.id)).cards.map(c=>c.id),[existing.id]);ui.library.dispose();
 });
