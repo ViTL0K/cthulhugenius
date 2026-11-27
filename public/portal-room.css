@@ -38,3 +38,25 @@ html,body{max-width:100%;overflow-x:hidden}#roomView *,#appearanceSettings *{box
 #roomView .participant-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .room-announcement{position:fixed;inset:0;margin:auto;z-index:10000;width:min(640px,calc(100vw - 28px));max-height:80dvh;overflow:auto;border:1px solid var(--gold);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;box-shadow:0 20px 80px #000a;font-family:inherit}
 .room-announcement p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}.room-announcement header{display:flex;align-items:center;justify-content:space-between;gap:12px}.room-announcement h2{margin:0;font-size:20px}
+
+/* Separate announcement fields and actions on both wide and narrow screens. */
+.room-announcement-form{display:grid;gap:18px;min-width:0}
+.room-announcement-form .field{margin:0;gap:8px}
+.room-announcement-form :is(input,textarea){width:100%;min-width:0;box-sizing:border-box;font:inherit}
+.room-announcement-form textarea{min-height:170px;resize:vertical}
+.room-announcement-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:6px}
+#roomView.room-player [data-action="show-room-announcement"]{display:none!important}
+.member-sheets-manager{display:grid;gap:26px;padding:2px 0 8px}
+.member-sheets-toolbar{display:flex;flex-wrap:wrap;gap:12px}
+.member-sheets-section{display:grid;gap:16px}
+.member-sheets-section h3{margin:0;font-size:19px;line-height:1.4}
+.member-sheets-section .game-list{gap:14px}
+.member-sheets-section .game-list:empty{display:none}
+.member-sheets-section .game-row{gap:20px;padding:18px;align-items:center;flex-wrap:wrap}
+.member-sheets-section .game-row>div:first-child{flex:1;min-width:min(200px,100%)}
+.member-sheets-section .game-row strong{line-height:1.4;overflow-wrap:anywhere}
+.member-sheets-section .game-row p{margin:8px 0 0!important;line-height:1.6}
+.member-sheets-section .prepared-sheet-info{gap:10px}
+.member-sheets-section .game-row>.btn{min-height:40px}
+.member-sheets-count{margin:0;padding-top:2px;line-height:1.5}
+@media(max-width:520px){.room-announcement-actions>.btn{flex:1 1 100%}.member-sheets-section .game-row>.btn{width:100%}.member-sheets-section .game-row{gap:14px;padding:15px}.member-sheets-manager{gap:22px}}
