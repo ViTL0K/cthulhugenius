@@ -292,7 +292,7 @@ body:has(#roomView.active){overflow:hidden}
 <link rel="stylesheet" href="/portal-rules.css?v=51">
 
 <link rel="stylesheet" href="/locale.css?v=78">
-<script src="/locale.js"></script>
+<script src="/locale.js?v=102"></script>
 <script src="/sheet-print-labels.js?v=78"></script>
 <script src="/localized-sheet.js?v=78"></script>
 <style>
@@ -305,11 +305,12 @@ body:has(#roomView.active){overflow:hidden}
 </style>
 <link rel="stylesheet" href="/migration-restored.css?v=95">
 <link rel="icon" href="/favicon.ico?v=97" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=97"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=97">
-<link rel="stylesheet" href="/portal-fonts.css?v=99"><link rel="stylesheet" href="/material-library.css?v=101"><script defer src="/portal-fonts.js?v=99"></script>
-<link rel="stylesheet" href="/portal-appearance.css?v=101"><script defer src="/portal-appearance.js?v=101"></script>
+<link rel="stylesheet" href="/portal-fonts.css?v=102"><link rel="stylesheet" href="/material-library.css?v=101"><script defer src="/portal-fonts.js?v=102"></script>
+<link rel="stylesheet" href="/portal-appearance.css?v=102"><script defer src="/portal-appearance.js?v=102"></script>
 <link rel="stylesheet" href="/portal-tour.css?v=99"><script defer src="/portal-tour.js?v=99"></script>
 <link rel="stylesheet" href="/portal-room.css?v=101">
 <style>body[data-admin-embedded] main.app,body[data-admin-embedded] #siteUpdateNotice,body[data-admin-embedded] [data-action="site-management"]{display:none!important}body[data-admin-embedded]{min-height:100dvh}body[data-admin-embedded] dialog:not(.library-editor):not(.library-access-popup){width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - 12px);margin:auto}body[data-admin-embedded] dialog.library-browser{height:calc(100dvh - 12px)}body[data-admin-embedded]:has(dialog[open]) #embedded-editor-status{display:none}#embedded-editor-status{padding:24px;color:var(--muted)}</style>
+<link rel="stylesheet" href="/investigator-sheet.css?v=102">
 </head>
 <body>
 <main class="app">
@@ -729,6 +730,8 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     "Не вдалося надіслати запит": ["Не удалось отправить запрос", "Could not send the request"]
   });
   function uiText(ukrainian,language=interfaceLanguage){
+    const portalTranslation=locale.portalText(ukrainian,language);
+    if(portalTranslation!==undefined)return portalTranslation;
     const translations=Object.hasOwn(interfaceTranslations,ukrainian)?interfaceTranslations[ukrainian]:null;
     return translations?.[language==='ru'?0:language==='en'?1:-1]??ukrainian;
   }

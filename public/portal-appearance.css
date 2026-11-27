@@ -299,7 +299,7 @@ dialog:has(#appearanceSettings) {
 body[data-custom-colors] :is(.room,.view,.entry,.portal,.portal-grid){color:var(--base-ink)}
 body[data-custom-colors] :is(.panel,.roster,.toolbox,.chatbox,.portal-card,.entry-card,.join-card,.room-home,.library-editor,.library-browser,.library-access-popup,dialog,.card){background:var(--panel)!important;color:var(--ink);border-color:var(--line)}
 body[data-custom-colors] :is(.tool-btn,.message,.library-card,.library-toolbar,.library-prose,.field label,.chat-target){color:var(--ink)}
-body[data-custom-colors] :is(input,textarea,select){background:var(--panel2)!important;color:var(--ink)!important;border-color:var(--line)!important}
+body[data-custom-colors] :is(input,textarea,select):not(.sheet-pdf-text){background:var(--panel2)!important;color:var(--ink)!important;border-color:var(--line)!important}
 body[data-custom-colors] :is(.btn.primary,.primary,.button){background:var(--gold)!important;border-color:var(--gold)!important;color:var(--accent-ink)!important}
 body[data-custom-colors] :is(.library-tools button[aria-pressed=true],.sheet-tab.active){background:var(--gold);color:var(--accent-ink)}
 body[data-custom-colors] .library-card-title{color:var(--ink)}
@@ -339,7 +339,7 @@ body[data-palette] :is(.portal-card.featured,.portal-card:hover){background:colo
 body[data-palette] :is(.btn,.icon-btn,.chat-target,.tool-btn:hover,.quote-controls button){background:var(--panel2);color:var(--ink);border-color:var(--line)}
 body[data-palette] :is(.btn.primary,.btn[aria-pressed=true],.library-access-actions button[aria-pressed=true]){background:var(--gold);border-color:var(--gold);color:var(--accent-ink,#111714)}
 body[data-palette] :is(.portal-card p,.portal-card.featured p){color:var(--muted)}
-body[data-palette] :is(input,textarea,select){background:var(--panel2);color:var(--ink);border-color:var(--line)}
+body[data-palette] :is(input,textarea,select):not(.sheet-pdf-text){background:var(--panel2);color:var(--ink);border-color:var(--line)}
 body[data-admin] :is(.card,.stat,.list article,.create-room,dialog,th,.badge){background:var(--panel);border-color:var(--line);color:var(--ink)}
 body[data-admin] :is(.topbar,.layout>aside){background:color-mix(in srgb,var(--bg) 85%,transparent)}
 body[data-admin] :is(button,.button){background:var(--panel2,var(--panel));color:var(--ink);border-color:var(--line)}
@@ -348,3 +348,10 @@ body[data-admin] .quiet{background:transparent}body[data-admin] .muted{color:var
 
 body[data-palette] :is(.library-card,.library-card-title){border-color:var(--line)}body[data-palette] .library-card:hover{border-color:var(--gold)}
 body[data-palette] :is(.library-access.hidden,.library-access.selected){color:var(--gold)}body[data-palette] .library-scroll{scrollbar-color:var(--line) var(--bg)}
+
+/* Room-code label stays in normal flow above both controls. */
+#portalJoinPanel { margin-top: 10px; padding: 12px; row-gap: 8px; column-gap: 10px; align-items: stretch; grid-template-columns: minmax(0,1fr) auto; }
+#portalJoinPanel > label { position: static; transform: none; margin: 0; padding: 0; grid-column: 1 / -1; line-height: 1.4; }
+#portalJoinPanel > input { width: 100%; min-width: 0; min-height: 44px; }
+#portalJoinPanel > button { min-height: 44px; }
+@media(max-width:420px) { #portalJoinPanel { grid-template-columns: minmax(0,1fr); } #portalJoinPanel > button { grid-column: 1; } }

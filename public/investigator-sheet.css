@@ -1,0 +1,32 @@
+/* Field colors only; the rest of the sheet continues to use existing settings. */
+body .sheet-pdf-page :is(input.sheet-pdf-text,textarea.sheet-pdf-text),
+body[data-palette] .sheet-pdf-page :is(input.sheet-pdf-text,textarea.sheet-pdf-text),
+body[data-custom-colors] .sheet-pdf-page :is(input.sheet-pdf-text,textarea.sheet-pdf-text) {
+  background: transparent !important;
+  background-image: none !important;
+  color: #211a13 !important;
+  -webkit-text-fill-color: #211a13 !important;
+  caret-color: #211a13;
+  box-shadow: none !important;
+  opacity: 1;
+  color-scheme: light;
+}
+body .sheet-pdf-page :is(input.sheet-pdf-text,textarea.sheet-pdf-text):focus {
+  background: rgb(255 249 232 / 25%) !important;
+  outline: 1px solid #9b7b48;
+}
+/* Clip the browser autofill paint to the text while retaining black glyphs. */
+body .sheet-pdf-page .sheet-pdf-text:-webkit-autofill {
+  -webkit-text-fill-color: #211a13 !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+body .sheet-pdf-page .sheet-pdf-text:autofill {
+  color: #211a13 !important;
+  -webkit-text-fill-color: #211a13 !important;
+  background-color: transparent !important;
+  background-clip: text !important;
+  box-shadow: none !important;
+}

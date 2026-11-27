@@ -39,3 +39,20 @@ test('preview retains wallpaper and the saved motion preference survives reload'
 test('saved palette and wallpaper restore on pages without the room application',()=>{
  const ui=screen(new Map([['cth-palette','cosmic'],['cth-theme','09_walnut_table']]));assert.equal(ui.document.body.dataset.palette,'cosmic');assert.equal(ui.document.body.dataset.theme,'09_walnut_table');
 });
+
+test('localized preset labels preserve selection and draft preview in all interface languages',()=>{
+ for(const lang of ['uk','ru','en']){
+  const {document,window}=parseHTML(`<html lang="${lang}"><body><div id="modalBody"></div></body></html>`);let callback;
+  const context={window,document,localStorage:{getItem:()=>null},MutationObserver:class{constructor(fn){callback=fn;}observe(){}}};
+  vm.runInNewContext(readFileSync(new URL('../public/locale.js',import.meta.url),'utf8'),context);
+  vm.runInNewContext(source,context);
+  document.querySelector('#modalBody').innerHTML='<form id="appearanceSettings"><div id="appearancePreview"></div></form>';callback();
+  const preset=document.querySelector('.portal-palette-preset');
+  assert.equal(preset.textContent.includes(window.cthLocale.portalText('Опівнічний Помаранч',lang)),true);
+  preset.click();assert.equal(preset.getAttribute('aria-pressed'),'true');
+  assert.equal(document.querySelectorAll('input[type=color]')[2].value,'#FF7A1A');
+  assert.equal(document.querySelector('.mini-stage b').textContent,window.cthLocale.portalText('Матеріали гри',lang));
+  assert.equal(window.cthLocale.portalText('Вигляд порталу','uk'),'Вигляд порталу');
+  assert.equal(window.cthLocale.portalText('Кобальтова безодня','en'),'Cobalt Abyss');
+ }
+});
