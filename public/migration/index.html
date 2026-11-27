@@ -310,7 +310,7 @@ body:has(#roomView.active){overflow:hidden}
 <link rel="stylesheet" href="/portal-tour.css?v=99"><script defer src="/portal-tour.js?v=99"></script>
 <link rel="stylesheet" href="/portal-room.css?v=101">
 <style>body[data-admin-embedded] main.app,body[data-admin-embedded] #siteUpdateNotice,body[data-admin-embedded] [data-action="site-management"]{display:none!important}body[data-admin-embedded]{min-height:100dvh}body[data-admin-embedded] dialog:not(.library-editor):not(.library-access-popup){width:calc(100vw - 12px);max-width:none;max-height:calc(100dvh - 12px);margin:auto}body[data-admin-embedded] dialog.library-browser{height:calc(100dvh - 12px)}body[data-admin-embedded]:has(dialog[open]) #embedded-editor-status{display:none}#embedded-editor-status{padding:24px;color:var(--muted)}</style>
-<link rel="stylesheet" href="/investigator-sheet.css?v=102">
+<link rel="stylesheet" href="/investigator-sheet.css?v=103">
 </head>
 <body>
 <main class="app">
@@ -2096,7 +2096,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
     };
     const ruleStep=23.5;
     const ruleClearance=2.5;
-    const pages=[1,2,3].map(page=>`<section class="sheet-pdf-page" data-page="${page}"><img class="sheet-pdf-art" src="/assets/investigator-sheet-${page}.webp" alt="Оригінальний лист дослідника, сторінка ${page}"><div class="sheet-pdf-layer">${fields.filter(f=>f.page===page&&(page!==2||f.y<76)).map(f=>{
+    const pages=[1,2,3].map(page=>`<section class="sheet-pdf-page" data-page="${page}"><img class="sheet-pdf-art" src="/assets/investigator-sheet-${page}.webp?v=103" alt="Оригінальний лист дослідника, сторінка ${page}"><div class="sheet-pdf-layer">${fields.filter(f=>f.page===page&&(page!==2||f.y<76)).map(f=>{
       const [firstRule,ruledRows]=f.multiline?writingLines[Number(f.name.split(' ').pop())]||[]:[];
       const y=ruledRows?(firstRule-ruleStep-ruleClearance)*100/1352:f.y;
       const height=ruledRows?ruledRows*ruleStep*100/1352:f.h;
