@@ -14,6 +14,7 @@ export async function ensureMaterialLibrary(db){
     created_by TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
     UNIQUE(game_id,legacy_key))`),
   db.prepare('CREATE TABLE IF NOT EXISTS room_material_meta(card_id TEXT PRIMARY KEY REFERENCES room_material_cards(id) ON DELETE CASCADE,category TEXT NOT NULL DEFAULT \'\')'),
+  db.prepare("CREATE TABLE IF NOT EXISTS room_material_types(card_id TEXT PRIMARY KEY REFERENCES room_material_cards(id) ON DELETE CASCADE,kind TEXT NOT NULL CHECK(kind='image'))"),
   db.prepare('CREATE TABLE IF NOT EXISTS room_material_blocks(card_id TEXT NOT NULL REFERENCES room_material_cards(id) ON DELETE CASCADE,position INTEGER NOT NULL,data TEXT NOT NULL,PRIMARY KEY(card_id,position))'),
   db.prepare('CREATE INDEX IF NOT EXISTS room_material_parent ON room_material_cards(game_id,parent_id,sort_order)'),
   db.prepare('CREATE INDEX IF NOT EXISTS room_material_file ON room_material_cards(game_id,file_path)'),
@@ -30,11 +31,11 @@ export function mayReadMaterial(map,card,userId,isKeeper=false){
   if(!current.parent_id)return true;current=map.get(current.parent_id);if(!current)return false;
  }return false;
 }
-function clean(row,isKeeper){if(!row)return null;const out={...row};out.targets=JSON.parse(row.targets||'[]');out.crop={zoom:1,x:.5,y:.5,...JSON.parse(row.crop||'{}')};if(row.file_path)out.file_url='/api/migration/files?path='+encodeURIComponent(row.file_path);if(!isKeeper){delete out.cover_source;delete out.crop;delete out.targets;delete out.created_by;delete out.legacy_key;delete out.file_path;}return out;}
+function clean(row,isKeeper){if(!row)return null;const out={...row};if(out.kind==='entry'&&out.material_type==='image')out.kind='image';delete out.material_type;out.targets=JSON.parse(row.targets||'[]');out.crop={zoom:1,x:.5,y:.5,...JSON.parse(row.crop||'{}')};if(row.file_path)out.file_url='/api/migration/files?path='+encodeURIComponent(row.file_path);if(!isKeeper){delete out.cover_source;delete out.crop;delete out.targets;delete out.created_by;delete out.legacy_key;delete out.file_path;}return out;}
 function image(value,max,label){if(value===undefined)return undefined;if(value==='')return '';if(typeof value!=='string'||value.length>max||!/^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/]+=*$/.test(value))fail('Перевір зображення: '+label+'.');return value;}
 async function validate(db,game,data,current,map){
  const title=typeof data.title==='string'?data.title.trim():'';if(!title||title.length>100)fail('Назва має містити від 1 до 100 символів.');
- const kind=data.kind||current?.kind||'category';if(!['category','entry'].includes(kind))fail('Оберіть вкладку або картку.');
+ const materialKind=data.kind||current?.material_type||current?.kind||'category';if(!['category','entry','image'].includes(materialKind))fail('Обери тип матеріалу.');const kind=materialKind==='image'?'entry':materialKind;
  const parent=current?.parent_id??data.parent_id??null;
  if(current&&data.parent_id!==undefined&&data.parent_id!==current.parent_id)fail('Не можна змінити батьківську вкладку цим запитом.');
  if(parent){let p=map.get(parent),depth=1;if(!p||p.kind!=='category')fail('Батьківську вкладку не знайдено.',404);while(p?.parent_id){p=map.get(p.parent_id);if(!p||++depth>=12)fail('Досягнуто максимальної вкладеності.');}}
@@ -51,17 +52,21 @@ async function validate(db,game,data,current,map){
  const thumb=image(data.cover_thumb,110000,'мініатюра')??current?.cover_thumb??'';
  if(Boolean(source)!==Boolean(thumb))fail('Підготуй обкладинку та її кадрування.');
  const detailImage=image(data.image,950000,'картинка під описом')??current?.image??'';
+ if(materialKind==='image'){if(!detailImage||!source||!thumb)fail('Додай зображення до картки.');if(body.trim()||(data.blocks??current?.blocks??[]).length||(data.file_path??current?.file_path))fail('Картинка з назвою не містить текстових блоків чи вкладених файлів.');}
  const path=data.file_path??current?.file_path??'';let fileType='';
  if(path){if(typeof path!=='string'||!path.startsWith(game+'/'))fail('Файл іншої кімнати недоступний.',403);const file=await db.prepare("SELECT data FROM migration_records WHERE table_name='files' AND record_id=? AND game_id=?").bind(path,game).first();if(!file)fail('Файл не знайдено.',404);fileType=JSON.parse(file.data).type;}
  return {title,kind,parent_id:parent,body,cover_source:source,cover_thumb:thumb,crop:JSON.stringify(crop),image:detailImage,file_path:path,file_type:fileType,audience,targets:JSON.stringify(audience==='selected'?targets:[])};
 }
 const fields=['kind','title','body','cover_source','cover_thumb','crop','image','file_path','file_type','audience','targets'];
-async function getCard(db,game,id){const row=await db.prepare("SELECT c.*,COALESCE(m.category,'') AS category FROM room_material_cards c LEFT JOIN room_material_meta m ON m.card_id=c.id WHERE c.game_id=? AND c.id=?").bind(game,id).first();if(row){const rows=(await db.prepare('SELECT data FROM room_material_blocks WHERE card_id=? ORDER BY position').bind(id).all()).results;row.blocks=rows.map(r=>JSON.parse(r.data));}return row;}
+async function getCard(db,game,id){const row=await db.prepare("SELECT c.*,COALESCE(m.category,'') AS category,(SELECT kind FROM room_material_types WHERE card_id=c.id) AS material_type FROM room_material_cards c LEFT JOIN room_material_meta m ON m.card_id=c.id WHERE c.game_id=? AND c.id=?").bind(game,id).first();if(row){const rows=(await db.prepare('SELECT data FROM room_material_blocks WHERE card_id=? ORDER BY position').bind(id).all()).results;row.blocks=rows.map(r=>JSON.parse(r.data));}return row;}
 function contentChanges(db,id,revision,data){
  const statements=[],guard='EXISTS(SELECT 1 FROM room_material_cards WHERE id=? AND revision=?)';
+ // Persist the image subtype without rebuilding the existing category/entry table.
+ if(data.kind==='image')statements.push(db.prepare("INSERT INTO room_material_types(card_id,kind) SELECT ?,'image' WHERE "+guard+" ON CONFLICT(card_id) DO UPDATE SET kind='image'").bind(id,id,revision));
+ else if(data.kind!==undefined)statements.push(db.prepare('DELETE FROM room_material_types WHERE card_id=? AND '+guard).bind(id,id,revision));
  if(data.category!==undefined){if(typeof data.category!=='string'||data.category.trim().length>60)fail('Категорія має містити до 60 символів.');statements.push(db.prepare('INSERT INTO room_material_meta(card_id,category) SELECT ?,? WHERE '+guard+' ON CONFLICT(card_id) DO UPDATE SET category=excluded.category').bind(id,data.category.trim(),id,revision));}
  if(data.blocks!==undefined){if(!Array.isArray(data.blocks)||data.blocks.length>200||JSON.stringify(data.blocks).length>16000000)fail('Вміст завеликий. Розділи його на кілька карток.');
- const blocks=data.blocks.map(b=>{if(!b||!['text','image'].includes(b.type))fail('Невідомий тип блоку.');if(b.type==='text'){if(typeof b.text!=='string'||b.text.length>30000)fail('Текст блоку завеликий.');return {type:'text',text:b.text};}if(!['small','medium','large'].includes(b.size))fail('Перевір розмір фото.');const src=image(b.src,950000,'фото блоку');if(!src)fail('Додай фото до блоку.');return {type:'image',src,size:b.size};});
+ const blocks=data.blocks.map(b=>{if(!b||!['text','image'].includes(b.type))fail('Невідомий тип блоку.');if(b.type==='text'){if(typeof b.text!=='string'||b.text.length>30000)fail('Текст блоку завеликий.');return {type:'text',text:b.text};}if(!['small','medium','large'].includes(b.size))fail('Перевір розмір фото.');const src=image(b.src,950000,'фото блоку');if(!src)fail('Додай фото до блоку.');if(b.side!==undefined&&!['left','right'].includes(b.side))fail('Обери розташування фото: зліва або справа.');return {type:'image',src,size:b.size,...(b.side?{side:b.side}:{})};});
  statements.push(db.prepare('DELETE FROM room_material_blocks WHERE card_id=? AND '+guard).bind(id,id,revision));for(const [i,b]of blocks.entries())statements.push(db.prepare('INSERT INTO room_material_blocks(card_id,position,data) SELECT ?,?,? WHERE '+guard).bind(id,i,JSON.stringify(b),id,revision));
  }return statements;
 }
@@ -96,7 +101,7 @@ export async function handleMaterialLibrary(request,ctx,url){
   let clauses=keeper?'':" AND (audience='all' OR (audience='selected' AND EXISTS(SELECT 1 FROM json_each(targets) WHERE value=?)))";
   const category=url.searchParams.get('category');const categoryRows=(await db.prepare("SELECT DISTINCT COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'') AS category FROM room_material_cards WHERE game_id=? AND parent_id IS ?"+clauses).bind(...(keeper?[game,parent]:[game,parent,ctx.user.id])).all()).results;
   if(category!==null)clauses+=" AND COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'')=?";
-  const sql="SELECT id,parent_id,kind,title,cover_thumb,audience,targets,sort_order,revision,updated_at,COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'') AS category FROM room_material_cards WHERE game_id=? AND parent_id IS ?"+clauses+' ORDER BY sort_order,id LIMIT 49 OFFSET ?';
+  const sql="SELECT id,parent_id,kind,title,cover_thumb,audience,targets,sort_order,revision,updated_at,(SELECT kind FROM room_material_types WHERE card_id=room_material_cards.id) AS material_type,COALESCE((SELECT category FROM room_material_meta WHERE card_id=room_material_cards.id),'') AS category FROM room_material_cards WHERE game_id=? AND parent_id IS ?"+clauses+' ORDER BY sort_order,id LIMIT 49 OFFSET ?';
   const params=[game,parent,...(keeper?[]:[ctx.user.id]),...(category===null?[]:[category]),page*48];const {results}=await db.prepare(sql).bind(...params).all();
   const crumbs=[];let p=parentRow;while(p){crumbs.unshift({id:p.id,title:p.title});p=p.parent_id?map.get(p.parent_id):null;}
   const players=keeper?(await db.prepare("SELECT user_id,display_name FROM game_members WHERE game_id=? AND role='player' ORDER BY joined_at").bind(game).all()).results:[];

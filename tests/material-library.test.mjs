@@ -96,3 +96,17 @@ test('drag movement changes the sibling order, rejects stale edits and enforces 
  assert.deepEqual((await f.call('keeper')).cards.map(c=>c.title),['C','A','B']);assert.equal((await f.call('keeper','/move','POST',payload)).status,409);
  const folder=(await f.create({title:'Вкладка'})).card,child=(await f.create({title:'Дочірня',parent_id:folder.id})).card;assert.equal((await f.call('keeper','/move','POST',{id:b.id,revision:2,before_id:child.id,anchor_revision:child.revision})).status,400);
 });
+
+test('named image materials persist their type, enforce access and remain leaf cards',async()=>{
+ const f=setup();let folder=(await f.create({title:'Локація',audience:'all'})).card;
+ const input={kind:'image',title:'Мапа будинку',parent_id:folder.id,image:tiny,cover_source:tiny,cover_thumb:tiny,body:'',blocks:[],audience:'selected',targets:['alice']};
+ let result=await f.create(input);assert.equal(result.status,200,JSON.stringify(result));let card=result.card;assert.equal(card.kind,'image');assert.deepEqual(card.blocks,[]);assert.equal(card.body,'');
+ assert.equal((await f.call('alice','?parent='+folder.id)).cards[0].kind,'image');assert.equal((await f.call('bob','/cards/'+card.id)).status,404);const visible=(await f.call('alice','/cards/'+card.id)).card;assert.equal(visible.image,tiny);assert.equal(visible.cover_source,undefined);assert.equal(visible.material_type,undefined);
+ assert.equal((await f.create({title:'Зайва підкартка',parent_id:card.id})).status,404);
+ card=(await f.call('keeper','/cards/'+card.id,'PUT',{title:'Мапа',revision:card.revision,audience:'all'})).card;assert.equal(card.kind,'image');assert.equal((await f.call('bob','/cards/'+card.id)).card.image,tiny);
+ assert.equal((await f.edit({...card,revision:card.revision-1},{kind:'entry'})).status,409);assert.equal((await f.call('keeper','/cards/'+card.id)).card.kind,'image');
+ assert.equal((await f.create({...input,title:'Без картинки',image:''})).status,400);assert.equal((await f.create({...input,title:'З текстом',body:'Зайвий текст'})).status,400);assert.equal((await f.create({...input,title:'З блоками',blocks:[{type:'text',text:'Прихований опис'}]})).status,400);
+ folder=(await f.edit(folder,{audience:'hidden'})).card;assert.equal((await f.call('alice','/cards/'+card.id)).status,404);
+ card=(await f.edit(card,{kind:'entry',body:'Тепер повний матеріал'})).card;assert.equal(card.kind,'entry');assert.equal(f.DB.db.prepare('SELECT COUNT(*) AS n FROM room_material_types').get().n,0);
+ const another=(await f.create({...input,title:'Інша мапа'})).card;assert.equal(another.kind,'image');await f.call('keeper','/cards/'+folder.id,'DELETE',{revision:folder.revision});assert.equal(f.DB.db.prepare('SELECT COUNT(*) AS n FROM room_material_types').get().n,0);
+});
