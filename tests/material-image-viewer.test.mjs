@@ -33,3 +33,7 @@ test('room map is a closable non-modal overlay inside the central stage and leav
  viewer.querySelector('[aria-label="Збільшити"]').click();assert.equal(viewer.querySelector('output').textContent,'59%');viewer.querySelector('[aria-label="Закрити зображення"]').click();assert.equal(stage.children.length,1);assert.equal(stage.firstElementChild,materials);assert.equal(ui.events.size,0);
  const reopened=await ui.window.openMaterialImage({src:'city-map',container:stage});ui.event(reopened,'keydown',{key:'Escape'});assert.equal(stage.children.length,1);assert.equal(reopened.open,false);
 });
+
+test('map editing action is optional and calls its keeper callback',async()=>{
+ const ui=screen();let edits=0;const viewer=await ui.window.openMaterialImage({src:'map',onEdit:()=>edits++});viewer.querySelector('[aria-label="Редагувати карту"]').click();assert.equal(edits,1);viewer.close();const player=await ui.window.openMaterialImage({src:'map'});assert.equal(player.querySelector('[aria-label="Редагувати карту"]'),null);player.close();
+});

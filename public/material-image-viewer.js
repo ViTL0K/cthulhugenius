@@ -2,7 +2,7 @@
 (()=>{
  let active=null;
  window.closeMaterialImage=()=>active?.close();
- window.openMaterialImage=async({src,title='',container=null})=>{
+ window.openMaterialImage=async({src,title='',container=null,onEdit=null})=>{
   active?.close();
   const make=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
   const viewer=make(container?'section':'dialog',undefined,'material-image-viewer');active=viewer;
@@ -35,7 +35,7 @@
   const full=control('Повний екран',async()=>{try{if(document.fullscreenElement===viewer)await document.exitFullscreen?.();else await viewer.requestFullscreen?.();}catch{message.textContent='Повноекранний режим браузера недоступний.';}} ,'⛶');
   full.hidden=!!container||typeof viewer.requestFullscreen!=='function';
   const close=control('Закрити зображення',()=>viewer.close(),'×');close.classList.add('material-image-close');
-  tools.append(minus,amount,plus,slider,fitButton,original,full,close);toolbar.append(name,tools);surface.append(picture);viewport.append(surface);viewer.append(toolbar,viewport,message);(container||document.body).append(viewer);if(!container)viewer.showModal();viewer.focus();
+  if(onEdit)tools.append(control('Редагувати карту',onEdit));tools.append(minus,amount,plus,slider,fitButton,original,full,close);toolbar.append(name,tools);surface.append(picture);viewport.append(surface);viewer.append(toolbar,viewport,message);(container||document.body).append(viewer);if(!container)viewer.showModal();viewer.focus();
   slider.addEventListener('input',()=>zoom(Number(slider.value)/100));
   viewport.addEventListener('wheel',event=>{if(!naturalWidth)return;event.preventDefault();zoom(scale*Math.exp(-Math.max(-200,Math.min(200,event.deltaY))*.002),{x:event.clientX,y:event.clientY});},{passive:false});
   viewport.addEventListener('pointerdown',event=>{if(event.button!==0||!naturalWidth)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};viewport.setPointerCapture?.(event.pointerId);viewport.classList.add('dragging');});

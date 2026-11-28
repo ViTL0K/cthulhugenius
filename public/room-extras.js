@@ -20,11 +20,11 @@
   }
   async function openMap(){
    const game=state.gameId,user=state.userId;if(!game)return;
-   try{const map=await rpc('get_room_map',{target_game:game});if(state.gameId!==game||state.userId!==user||!isActive())return;if(map?.image)await window.openMaterialImage({src:map.image,title:map.title||t('Карта'),container:document.querySelector('#roomView .library-stage')});else if(state.role==='keeper')await editMap();else toast(t('Ведучий ще не додав карту.'));}catch(error){toast(error.message);}
+   try{const map=await rpc('get_room_map',{target_game:game});if(state.gameId!==game||state.userId!==user||!isActive())return;if(map?.image)await window.openMaterialImage({src:map.image,title:map.title||t('Карта'),container:document.querySelector('#roomView .library-stage'),onEdit:state.role==='keeper'?()=>{if(state.gameId===game&&state.userId===user)return editMap(true);}:null});else if(state.role==='keeper')await editMap();else toast(t('Ведучий ще не додав карту.'));}catch(error){toast(error.message);}
   }
-  async function editMap(){
+  async function editMap(reopen=false){
    if(state.role!=='keeper'||!state.gameId)return;const game=state.gameId,user=state.userId;
-   let previous;try{previous=await rpc('get_room_map',{target_game:game});}catch(error){toast(error.message);return;}if(state.gameId!==game||state.userId!==user)return;
+   let previous;try{previous=await rpc('get_room_map',{target_game:game});}catch(error){toast(error.message);return;}if(state.gameId!==game||state.userId!==user||state.role!=='keeper'||!isActive())return;
    openModal(t('Карта кімнати'),'<div id="roomMapEditor" class="room-extras-editor"></div>');const host=document.querySelector('#roomMapEditor');
    const title=make('input');title.type='text';title.maxLength=100;title.value=previous?.title||t('Карта');title.setAttribute('aria-label',t('Назва карти'));
    const file=make('input');file.type='file';file.accept='image/png,image/jpeg,image/webp';const preview=make('img',undefined,'room-extras-preview');preview.alt=t('Попередній перегляд');let source=previous?.image||'',reading=false,saving=false;if(source)preview.src=source;preview.hidden=!source;
@@ -32,7 +32,7 @@
    file.addEventListener('change',async()=>{if(!file.files[0])return;reading=true;try{source=await imageFile(file.files[0],2400,900000);preview.src=source;preview.hidden=false;message.textContent='';}catch(error){message.textContent=error.message;}finally{reading=false;}});
    const actions=make('div',undefined,'room-extras-actions');
    async function save(remove=false){if(reading||saving||state.gameId!==game||state.userId!==user||state.role!=='keeper')return;if(!remove&&!source){message.textContent=t('Додай зображення до картки.');return;}saving=true;for(const b of actions.querySelectorAll('button'))b.disabled=true;
-    try{await rpc('set_room_map',{target_game:game,title:title.value,image:remove?'':source});if(state.gameId===game)host.closest('dialog')?.close();}catch(error){message.textContent=error.message;}finally{saving=false;for(const b of actions.querySelectorAll('button'))b.disabled=false;}}
+    try{await rpc('set_room_map',{target_game:game,title:title.value,image:remove?'':source});if(state.gameId===game&&state.userId===user){host.closest('dialog')?.close();if(reopen){if(remove)window.closeMaterialImage?.();else await openMap();}}}catch(error){message.textContent=error.message;}finally{saving=false;for(const b of actions.querySelectorAll('button'))b.disabled=false;}}
    actions.append(button('Зберегти',()=>save(false),'btn primary'));if(source)actions.append(button('Прибрати карту',()=>save(true)));host.append(actions);
   }
   async function editPortrait(){
