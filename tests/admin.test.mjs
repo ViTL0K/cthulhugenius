@@ -70,3 +70,26 @@ test('Reports reach the administrator and published quotes are available on the 
   const entry=await call(null,'/api/migration/entry');assert.equal(entry.quotes[0].text,'Тестова цитата');assert.equal(entry.quotes[0].created_by,undefined);
   assert.equal((await rpc('player','submit_feedback',{text:' '})).status,400);
 });
+
+test('only owner bans accounts, revokes sessions, prevents Google login and can unblock without data loss',async()=>{
+ const {DB,env,call,rpc}=setup();
+ assert.equal((await call('keeper','/api/migration/admin/bans',{user_id:'player',blocked:true})).status,403);
+ assert.equal((await call('owner','/api/migration/admin/bans',{user_id:'owner',blocked:true})).status,403);
+ assert.equal((await call('owner','/api/migration/admin/bans',{user_id:'missing',blocked:true})).status,404);
+ assert.equal((await call('owner','/api/migration/admin/bans',{user_id:'player',blocked:'yes'})).status,400);
+ assert.equal((await call('owner','/api/migration/admin/bans',{user_id:'player',blocked:true,reason:'Тест'})).status,200);
+ assert.equal(DB.db.prepare("SELECT COUNT(*) AS n FROM site_sessions WHERE user_id='player'").get().n,0);
+ assert.equal((await call('owner','/api/migration/admin/overview')).accounts.find(u=>u.id==='player').banned,true);
+ assert.equal((await rpc('player','my_account_role')).status,401);
+ // Even an accidentally retained token is rejected centrally across API routes.
+ const hash=createHash('sha256').update('p'.repeat(43)).digest('base64url');DB.db.prepare('INSERT INTO site_sessions VALUES(?,?,?)').run(hash,'player',Math.floor(Date.now()/1000)+3600);
+ assert.equal((await call('player','/api/migration/auth/session')).status,403);assert.equal((await call('player','/api/migration/rooms')).status,403);assert.equal((await rpc('player','my_account_role')).status,403);DB.db.prepare('DELETE FROM site_sessions WHERE token_hash=?').run(hash);
+ const original=globalThis.fetch;globalThis.fetch=async url=>Response.json(String(url).includes('/token')?{access_token:'test'}:{sub:'google-player',email:'player@example.com',email_verified:true,name:'player'});
+ try{
+  const callback=()=>worker.fetch(new Request(origin+'/api/migration/auth/google/callback?state='+ 'a'.repeat(43)+'&code=test',{headers:{Cookie:'__Host-poklik-oauth='+'a'.repeat(43)+'.'+'b'.repeat(43)}}),env);
+  assert.equal((await callback()).status,403);assert.equal(DB.db.prepare("SELECT COUNT(*) AS n FROM site_sessions WHERE user_id='player'").get().n,0);
+  assert.equal((await call('owner','/api/migration/admin/bans',{user_id:'player',blocked:false})).status,200);assert.equal((await call('owner','/api/migration/admin/overview')).accounts.find(u=>u.id==='player').banned,false);
+  assert.equal((await callback()).status,303);assert.equal(DB.db.prepare("SELECT COUNT(*) AS n FROM site_sessions WHERE user_id='player'").get().n,1);
+ }finally{globalThis.fetch=original;}
+ assert.equal(DB.db.prepare('SELECT COUNT(*) AS n FROM site_users').get().n,4);assert.equal((await call('owner','/api/migration/auth/session')).role,'admin');
+});

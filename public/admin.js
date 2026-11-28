@@ -1,5 +1,6 @@
 import {createAdminEditor} from './admin-editor.js?v=101';
 const $=s=>document.querySelector(s);
+const t=key=>window.cthLocale?.ui(key,document.documentElement.lang)||key;
 const labels={overview:'Огляд порталу',rooms:'Пригоди й кімнати',sheets:'Листи персонажів',content:'Наповнення сайту',accounts:'Акаунти та ролі',requests:'Запити на права ведучого',feedback:'Повідомлення та ідеї'};
 const roleNames={admin:'Адміністратор',keeper:'Ведучий',player:'Гравець'};
 let state=null,editingRoom=null,section='overview';
@@ -40,7 +41,8 @@ function render(){
     if(user.role==='admin')control.textContent='Захищений акаунт власника';
     else{const select=node('select');select.setAttribute('aria-label','Роль: '+user.display_name);for(const value of ['player','keeper']){const o=node('option',roleNames[value]);o.value=value;select.append(o);}select.value=user.role;
       control.append(select,button('Зберегти',async()=>{await api('roles',{user_id:user.id,role:select.value});await refresh();status('Роль акаунта оновлено.');}));}
-    tr.append(control);return tr;
+    const access=node('td');if(user.role==='admin')access.textContent='Захищено';else{access.append(node('span',user.banned?'Заблоковано':'Активний',user.banned?'badge account-banned':'badge'),button(user.banned?'Розблокувати':'Заблокувати',async()=>{if(!user.banned&&!confirm(t('Заблокувати')+' «'+user.display_name+'»?'))return;await api('bans',{user_id:user.id,blocked:!user.banned});await refresh();status(user.banned?'Акаунт розблоковано.':'Акаунт заблоковано.');},user.banned?'quiet':'danger'));}
+    tr.append(control,access);return tr;
   }));
   $('#request-count').textContent=state.requests.length?String(state.requests.length):'';
   $('#request-list').replaceChildren(...(state.requests.length?state.requests.map(item=>{const row=node('article');row.append(node('h3',item.display_name||accountNames.get(item.user_id)||'Користувач'),node('p',item.reason||'Без пояснення'),node('small',new Date(item.created_at).toLocaleString('uk-UA')));const actions=node('div',undefined,'room-actions');for(const [action,label] of [['approve','Призначити ведучим'],['reject','Відхилити']])actions.append(button(label,async()=>{await api('requests',{id:item.id,action});await refresh();}));row.append(actions);return row;}):[empty('Нових запитів немає.')]));

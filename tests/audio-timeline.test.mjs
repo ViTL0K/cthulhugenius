@@ -10,10 +10,10 @@ function setup(role='keeper'){
  vm.runInNewContext(source,{window:host,document,setInterval:()=>1,clearInterval(){},setTimeout,clearTimeout});
  const api=host.createAudioTimeline({state,$:s=>document.querySelector(s),send:(action,track)=>commands.push({action,track,playing:state.audioPlaying}),loadTrack:(...args)=>calls.push(['load',...args])});return {state,api,window,document,commands,calls,host};
 }
-test('timeline seeks once, preserves pause and denies player control',()=>{
+test('timeline seeks once, preserves pause and allows player control',()=>{
  const ui=setup();ui.api.update();assert.equal(ui.document.querySelector('#audioSeek').disabled,false);assert.equal(ui.document.querySelector('#audioTime').textContent,'00:12 / 04:00');
  const range=ui.document.querySelector('#audioSeek');range.value='84';range.dispatchEvent(new ui.window.Event('input'));assert.equal(ui.commands.length,0);range.dispatchEvent(new ui.window.Event('change'));assert.deepEqual(ui.calls[0],['seek',84]);assert.ok(ui.calls.some(c=>c[0]==='pause'));assert.equal(ui.commands[0].action,'seek');assert.equal(ui.commands[0].playing,false);assert.equal(ui.commands[0].track.position,84);ui.api.dispose();
- const p=setup('player');p.api.update();assert.equal(p.document.querySelector('#audioSeek').disabled,true);p.api.seek(50,true);assert.equal(p.commands.length,0);p.api.seek(90,false);assert.equal(p.calls[0][1],90);p.api.dispose();
+ const p=setup('player');p.api.update();assert.equal(p.document.querySelector('#audioSeek').disabled,false);p.api.seek(50,true);assert.equal(p.commands.length,1);p.api.seek(90,false);assert.equal(p.calls.at(-2)[1],90);p.api.dispose();
 });
 test('Spotify episodes report milliseconds and receive seek in seconds',async()=>{
  const ui=setup(),listeners={},seeks=[];const controller={addListener:(event,fn)=>listeners[event]=fn,seek:n=>seeks.push(n),play(){},pause(){},destroy(){}};ui.host.portalSpotifyApi={createController:(mount,options,fn)=>fn(controller)};

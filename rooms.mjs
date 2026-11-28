@@ -218,7 +218,8 @@ export async function handleRooms(request, db, url, env={}) {
       return url.pathname === route ? await createRoom(db, user, data) : await joinRoom(db, user, data);
     }
     return json({error: 'Сторінку не знайдено.'}, 404);
-  } catch {
+  } catch(error) {
+    if(error.code==='ACCOUNT_BANNED')return json({error:error.message},403);
     return json({error: 'Не вдалося виконати запит до кімнат. Спробуй ще раз.'}, 503);
   }
 }

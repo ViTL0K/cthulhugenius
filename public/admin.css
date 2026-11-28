@@ -2,3 +2,5 @@
 
 .admin-content-editor{width:calc(100vw - 24px);max-width:1600px;height:calc(100dvh - 24px);max-height:none;padding:0;overflow:hidden}.admin-content-editor[open]{display:flex;flex-direction:column}.admin-content-editor>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);flex:none}.admin-content-editor h2{margin:0;font-size:19px}#admin-editor-host{flex:1;min-height:0}#admin-editor-host iframe{display:block;border:0;width:100%;height:100%;background:var(--bg)}
 @media(max-width:600px){.admin-content-editor{width:100vw;height:100dvh;border-radius:0}.admin-content-editor>header{padding:9px;flex-wrap:wrap}.admin-content-editor>header button{font-size:12px}}
+
+#account-rows td:last-child{min-width:180px}#account-rows td:last-child>.badge{display:inline-block;margin:0 10px 8px 0}.account-banned{background:#583036;color:#ffd3d3}#account-rows td:nth-child(3)>button{margin-left:8px}

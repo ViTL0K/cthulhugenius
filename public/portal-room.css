@@ -28,7 +28,7 @@ html,body{max-width:100%;overflow-x:hidden}#roomView *,#appearanceSettings *{box
 .mini-material{width:min(112px,90%);margin-top:10px;border:1px solid var(--gold);border-radius:5px;overflow:hidden;background:var(--panel2);text-align:center}.mini-cover{display:grid;place-items:center;height:100px;font-size:48px;color:var(--gold2);background:repeating-linear-gradient(90deg,transparent 0 15px,#fff1 16px 18px),linear-gradient(145deg,var(--panel2),var(--bg))}.mini-material>span{display:block;padding:5px;font-size:10px}
 .mini-chat{grid-column:2/4;display:grid;gap:5px;grid-template-columns:1fr}.mini-message{padding:5px;border-left:2px solid var(--gold);background:var(--panel2);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.mini-input{padding:4px;border:1px solid var(--line);border-radius:4px;opacity:.8;font-size:9px}.portal-motion-control{display:flex;align-items:center;gap:8px;padding:12px 0 3px;font-size:13px}
 @media(max-width:540px){.appearance-preview{padding:8px!important;min-height:300px}.mini-room{grid-template-columns:17% minmax(0,1fr) 25%;gap:4px;font-size:9px}.mini-room>div,.mini-room>aside,.mini-room>section{padding:5px}.mini-header>span{font-size:8px}.mini-cover{height:85px}}
-#roomView.room-player .audio-track-row .play,#roomView.room-player .audio-track-row .remove{display:none}#roomView.room-player .audio-track-row{grid-template-columns:minmax(0,1fr)}
+#roomView.room-player .audio-track-row{grid-template-columns:minmax(0,1fr) 25px 25px}
 
 #roomView .room-title{grid-column:1;grid-row:1;justify-self:start;justify-content:flex-start}
 #roomView .room-controls{grid-column:2;grid-row:1;justify-self:end}
@@ -60,3 +60,5 @@ html,body{max-width:100%;overflow-x:hidden}#roomView *,#appearanceSettings *{box
 .member-sheets-section .game-row>.btn{min-height:40px}
 .member-sheets-count{margin:0;padding-top:2px;line-height:1.5}
 @media(max-width:520px){.room-announcement-actions>.btn{flex:1 1 100%}.member-sheets-section .game-row>.btn{width:100%}.member-sheets-section .game-row{gap:14px;padding:15px}.member-sheets-manager{gap:22px}}
+
+.room-extras-editor{display:grid;gap:16px}.room-extras-editor .field{margin:0}.room-extras-preview{display:block;max-width:100%;max-height:260px;object-fit:contain;margin:auto}.room-profile-preview{width:130px;height:130px;border-radius:50%;overflow:hidden;margin:auto;border:1px solid var(--line)}.room-profile-preview img{width:100%;height:100%;object-fit:cover}.room-extras-actions{display:flex;gap:10px;flex-wrap:wrap}.room-map-button{min-height:36px;white-space:nowrap}

@@ -1,3 +1,4 @@
+import {assertAccountActive,isAccountBanned} from './account-bans.mjs';
 import { ensureAccountProfiles } from './account-profile.mjs';
 import { accountRole } from './site-account.mjs';
 const callbackPath = '/api/migration/auth/google/callback';
@@ -125,6 +126,7 @@ async function finishSignIn(request, env, url, attempt) {
     'RETURNING id'
   ).bind(crypto.randomUUID(), profile.sub, profile.email, name || profile.email).first();
 
+  if(await isAccountBanned(env.DB,user.id))return json({error:'Акаунт заблоковано адміністратором.'},403);
   const previousToken = getCookie(request, sessionCookie);
   const token = randomToken();
   const now = Math.floor(Date.now() / 1000);
@@ -144,10 +146,11 @@ async function finishSignIn(request, env, url, attempt) {
 export async function sessionUser(request, db) {
   const token = getCookie(request, sessionCookie);
   if (!tokenPattern.test(token ?? '')) return null;
-  return db.prepare(
+  const user=await db.prepare(
     'SELECT u.id, u.display_name FROM site_sessions s JOIN site_users u ON u.id = s.user_id ' +
     'WHERE s.token_hash = ? AND s.expires_at > ?'
   ).bind(await digest(token), Math.floor(Date.now() / 1000)).first();
+  if(user)await assertAccountActive(db,user.id);return user;
 }
 
 async function currentSession(request, db, env) {
@@ -179,7 +182,8 @@ export async function handleGoogleAuth(request, env) {
     if (request.method === 'GET' && url.pathname === '/api/migration/auth/session') return await currentSession(request, env.DB, env);
     if (request.method === 'POST' && url.pathname === '/api/migration/auth/logout') return await signOut(request, env.DB, url.origin);
     return json({ error: 'Not found' }, 404);
-  } catch {
+  } catch(error) {
+    if(error.code==='ACCOUNT_BANNED')return json({error:error.message},403);
     if (url.pathname === callbackPath) return diagnostic(attempt.stage);
     return json({ error: 'Sign-in is unavailable' }, 503);
   }

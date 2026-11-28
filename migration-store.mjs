@@ -1,3 +1,4 @@
+import {ensureAccountBans} from './account-bans.mjs';
 import { saveAccountName } from './account-profile.mjs';
 import { normalizeAudioCommand } from './room-audio-state.mjs';
 import { handleMaterialLibrary, libraryFileAccess, ensureMaterialLibrary } from './material-library.mjs';
@@ -177,6 +178,20 @@ async function rpc(ctx,name,a,request,env){
     await put(ctx,'game_character_sheets',{...sheet,assigned_user_id:a.target_user||null});await event(ctx,sheet.game_id,'character-sheet-assigned');return null;
   }
   const game=a.target_game;const m=access(ctx,game);
+  if(name==='get_room_map')return (await raw(ctx,'room_map',game))[0]||null;
+  if(name==='set_room_map'){
+    access(ctx,game,true);const image=typeof a.image==='string'?a.image:'';const title=String(a.title||'Карта').trim();
+    if(title.length>100||image.length>950000||image&&!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(image))fail('Перевір назву та зображення карти.');
+    const result=await put(ctx,'room_map',{game_id:game,title,image,updated_at:now()},game);await event(ctx,game,'room-map-updated');return result;
+  }
+  if(name==='get_room_profiles')return raw(ctx,'room_profiles',game);
+  if(name==='set_my_room_portrait'){
+    access(ctx,game,true);const portrait=a.portrait;
+    if(typeof portrait!=='string'||portrait.length>300000||portrait&&!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(portrait))fail('Перевір зображення профілю.');
+    const zoom=Number(a.zoom??1),x=Number(a.x??0),y=Number(a.y??0);
+    if(!Number.isFinite(zoom)||zoom<1||zoom>3||![x,y].every(v=>Number.isFinite(v)&&v>=-50&&v<=50))fail('Перевір кадрування профілю.');
+    const result=await put(ctx,'room_profiles',{game_id:game,user_id:ctx.user.id,portrait,zoom,x,y,updated_at:now()},game+':'+ctx.user.id);await event(ctx,game,'profile-updated');return result;
+  }
   if(name==='get_room_announcement')return (await raw(ctx,'room_announcement',game))[0]||null;
   if(name==='set_room_announcement'){
     access(ctx,game,true);
@@ -252,7 +267,7 @@ async function realtime(ctx,request,input){
   const game=input.game;access(ctx,game);
   if(input.action==='send'){
     if(!input.event||typeof input.event!=='string'||JSON.stringify(input.payload).length>900000)fail('Некоректна подія.');
-    if(['scene-marker','audio-state'].includes(input.event))access(ctx,game,true);
+    if(input.event==='scene-marker')access(ctx,game,true);
     if(input.event==='participant-photo'&&input.payload?.user_id!==ctx.user.id)access(ctx,game,true);
     let payload=input.payload;
     if(input.event==='audio-state'){
@@ -287,7 +302,7 @@ async function rulesApi(ctx,request,url){
   const card=await put(ctx,'rules',{...map.get(id),title:data.title.trim(),body:data.body,visibility:data.visibility,examples:data.examples,updated_at:now()},id);return json({card});
 }
 async function adminApi(ctx,request,url,env){
-  admin(ctx);await ensureMaterialLibrary(ctx.db);
+  admin(ctx);await ensureMaterialLibrary(ctx.db);await ensureAccountBans(ctx.db);
   const tail=url.pathname.slice('/api/migration/admin/'.length);
   if(request.method==='GET'&&tail==='overview'){
     const [games,users,totals]=await ctx.db.batch([
@@ -297,16 +312,28 @@ async function adminApi(ctx,request,url,env){
         CASE WHEN EXISTS(SELECT 1 FROM room_material_versions v WHERE v.game_id=g.id) THEN (SELECT COUNT(*) FROM room_material_cards c WHERE c.game_id=g.id) ELSE (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='hidden_materials') END AS material_count,
         (SELECT COUNT(*) FROM migration_records r WHERE r.game_id=g.id AND r.table_name='files') AS file_count
         FROM games g JOIN site_users u ON u.id=g.keeper_id ORDER BY g.created_at DESC LIMIT 500`),
-      ctx.db.prepare("SELECT u.id,u.display_name,u.email,u.created_at,COALESCE(r.role,'player') AS role FROM site_users u LEFT JOIN account_roles r ON r.user_id=u.id ORDER BY u.created_at DESC LIMIT 500"),
+      ctx.db.prepare("SELECT u.id,u.display_name,u.email,u.created_at,COALESCE(r.role,'player') AS role,EXISTS(SELECT 1 FROM site_account_bans b WHERE b.user_id=u.id) AS banned FROM site_users u LEFT JOIN account_roles r ON r.user_id=u.id ORDER BY u.created_at DESC LIMIT 500"),
       ctx.db.prepare('SELECT table_name,COUNT(*) AS count FROM migration_records GROUP BY table_name')
     ]);
-    const accounts=users.results.map(u=>({...u,role:u.id===ctx.user.id?'admin':u.role==='admin'?'keeper':u.role}));
+    const accounts=users.results.map(u=>({...u,banned:Boolean(u.banned),role:u.id===ctx.user.id?'admin':u.role==='admin'?'keeper':u.role}));
     const [personal,prepared,requests,feedback]=await Promise.all(['investigator_sheets','game_character_sheets','keeper_access_requests','feedback'].map(t=>raw(ctx,t)));
     const sheets=[...personal.map(s=>({...s,kind:'personal'})),...prepared.map(s=>({...s,kind:'prepared'}))].map(s=>({id:s.id,game_id:s.game_id,user_id:s.user_id||s.assigned_user_id||null,kind:s.kind,name:s.sheet?.Investigators_Name||s.sheet?.char_name||s.character_name||'Персонаж без імені',updated_at:s.updated_at||s.created_at}));
     return json({user:ctx.user,rooms:games.results,accounts,sheets,requests,feedback,counts:{...Object.fromEntries(totals.results.map(t=>[t.table_name,t.count])),material_library_total:games.results.reduce((sum,g)=>sum+g.material_count,0)}});
   }
   if(request.method!=='POST')fail('Метод недоступний.',405);
   const data=await request.json().catch(()=>null);if(!data||typeof data!=='object')fail('Некоректний запит.');
+  if(tail==='bans'){
+    const target=typeof data.user_id==='string'?data.user_id:'';
+    if(!target||typeof data.blocked!=='boolean')fail('Перевір акаунт і стан блокування.');
+    if(target===ctx.user.id||await accountRole(ctx.db,target,env)==='admin')fail('Адміністративний акаунт захищений від блокування.',403);
+    if(!await ctx.db.prepare('SELECT id FROM site_users WHERE id=?').bind(target).first())fail('Акаунт не знайдено.',404);
+    if(data.reason!==undefined&&(typeof data.reason!=='string'||data.reason.length>500))fail('Причина блокування має містити до 500 символів.');
+    if(data.blocked)await ctx.db.batch([
+      ctx.db.prepare('INSERT INTO site_account_bans(user_id,banned_by,reason,created_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET banned_by=excluded.banned_by,reason=excluded.reason,created_at=excluded.created_at').bind(target,ctx.user.id,data.reason||'',now()),
+      ctx.db.prepare('DELETE FROM site_sessions WHERE user_id=?').bind(target)
+    ]);else await ctx.db.prepare('DELETE FROM site_account_bans WHERE user_id=?').bind(target).run();
+    return json({ok:true,blocked:data.blocked});
+  }
   if(tail==='roles'){
     const target=typeof data.user_id==='string'?data.user_id:'';
     if(target===ctx.user.id)fail('Роль власника сайту захищена.',403);
