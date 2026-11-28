@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 import worker from '../worker.mjs';
 import {setup,game,tiny,origin} from './library-helper.mjs';
 const flush=async()=>{for(let n=0;n<10;n++)await new Promise(resolve=>setTimeout(resolve,5));};
-function dom(fixture,user,storage=new Map()){
+function dom(fixture,user,storage=new Map(),onOpenMap=null){
  let network=null;
  const {window,document}=parseHTML('<html><body><section id="mount"></section></body></html>');
  Object.defineProperty(window.HTMLSelectElement.prototype,'value',{configurable:true,get(){return [...this.querySelectorAll('option')].find(o=>o.hasAttribute('selected'))?.value||this.querySelector('option')?.value||'';},set(v){for(const o of this.querySelectorAll('option'))o.toggleAttribute('selected',o.value===String(v));}});
@@ -20,7 +20,7 @@ function dom(fixture,user,storage=new Map()){
  const context=vm.createContext({sessionStorage,window:fakeWindow,document,Image,FileReader,URLSearchParams,AbortSignal,console,confirm:()=>true,setInterval:fn=>{ticks.push(fn);return ticks.length;},clearInterval(){},fetch:(url,options={})=>network?network(url,options):worker.fetch(new Request(origin+url,{...options,headers:{...options.headers,Origin:origin,Cookie:'__Host-poklik-session='+fixture.tokens[user]}}),fixture.env)});
  vm.runInContext(readFileSync(new URL('../public/material-image-viewer.js',import.meta.url),'utf8'),context);
  vm.runInContext(readFileSync(new URL('../public/material-library.js',import.meta.url),'utf8'),context);
- const library=fakeWindow.createRoomMaterialLibrary({mount:document.querySelector('#mount'),onError:e=>errors.push(e)});library.activate({gameId:game,userId:user,role:user==='keeper'?'keeper':'player'});
+ const library=fakeWindow.createRoomMaterialLibrary({mount:document.querySelector('#mount'),onOpenMap,onError:e=>errors.push(e)});library.activate({gameId:game,userId:user,role:user==='keeper'?'keeper':'player'});
  return {window,document,library,ticks,errors,draws,network:fn=>network=fn,storage};
 }
 test('player navigates nested cards and a revoked card disappears from the detail view',async()=>{
@@ -215,3 +215,7 @@ test('a cover caption needs no upload, persists after access edits, and can be e
  assert.equal((await f.create({kind:'entry',title:'Фото і напис',cover_source:tiny,cover_thumb:tiny,crop:{zoom:1,x:.5,y:.5,caption:'Напис'}})).status,200);
  assert.equal((await f.create({kind:'entry',title:'Завеликий напис',cover_thumb:tiny,crop:{zoom:1,x:.5,y:.5,caption:'а'.repeat(241)}})).status,400);
 });
+
+ test('both room roles can open the map from the materials toolbar',async()=>{
+ const f=setup();for(const user of ['keeper','alice']){let opened=0;const ui=dom(f,user,new Map(),()=>opened++);await flush();const toolbar=ui.document.querySelector('.library-toolbar');toolbar.querySelector('[aria-label="Карта кімнати"]').click();assert.equal(opened,1);assert.equal(!!toolbar.querySelector('[aria-label="Додати матеріал"]'),user==='keeper');ui.library.dispose();}
+ });

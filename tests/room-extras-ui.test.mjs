@@ -6,7 +6,7 @@ import {parseHTML} from 'linkedom';
 import {tiny} from './library-helper.mjs';
 const flush=()=>new Promise(r=>setTimeout(r,5));
 function ui(){
- const {document,window}=parseHTML('<html><body><dialog id="modal"><main></main></dialog></body></html>');const dialog=document.querySelector('dialog');dialog.close=()=>dialog.open=false;
+ const {document,window}=parseHTML('<html><body><section id="roomView"><section class="library-stage"></section></section><dialog id="modal"><main></main></dialog></body></html>');const dialog=document.querySelector('dialog');dialog.close=()=>dialog.open=false;
  Object.defineProperty(window.HTMLInputElement.prototype,'files',{configurable:true,writable:true,value:[]});window.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});window.HTMLCanvasElement.prototype.toDataURL=()=>tiny;
  class Image{constructor(){this.naturalWidth=800;this.naturalHeight=600;}async decode(){}}class FileReader{readAsDataURL(){this.result=tiny;queueMicrotask(()=>this.onload());}}
  const host={},state={cloud:true,gameId:'room',userId:'keeper',role:'keeper',roomSub:{send:async()=> 'ok'}},stored={map:null,profiles:[]},calls=[],portraits=[],opened=[],errors=[];
@@ -16,7 +16,7 @@ function ui(){
  return {document,window,state,stored,calls,portraits,opened,errors,extras,dialog,upload,click};
 }
 test('room map editor uploads once, opens a zoomable image for players and prevents stale room writes',async()=>{
- const view=ui();await view.extras.editMap();view.upload();await flush();view.document.querySelector('input[type=text]').value='Бостон';view.click('Зберегти');await flush();assert.equal(view.stored.map.image,tiny);assert.equal(view.stored.map.title,'Бостон');assert.equal(view.dialog.open,false);view.state.role='player';await view.extras.openMap();assert.equal(view.opened[0].src,tiny);const count=view.calls.length;await view.extras.editMap();assert.equal(view.calls.length,count);
+ const view=ui();await view.extras.editMap();view.upload();await flush();view.document.querySelector('input[type=text]').value='Бостон';view.click('Зберегти');await flush();assert.equal(view.stored.map.image,tiny);assert.equal(view.stored.map.title,'Бостон');assert.equal(view.dialog.open,false);view.state.role='player';await view.extras.openMap();assert.equal(view.opened[0].src,tiny);assert.equal(view.opened[0].container,view.document.querySelector('.library-stage'));const count=view.calls.length;await view.extras.editMap();assert.equal(view.calls.length,count);
  view.state.role='keeper';await view.extras.editMap();view.state.gameId='different';view.click('Зберегти');await flush();assert.equal(view.stored.map.target_game,'room');view.extras.dispose();
 });
 test('keeper portrait editor saves image and crop and refreshes avatars for room members',async()=>{

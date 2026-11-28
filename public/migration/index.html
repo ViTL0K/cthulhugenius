@@ -305,7 +305,7 @@ body:has(#roomView.active){overflow:hidden}
 </style>
 <link rel="stylesheet" href="/migration-restored.css?v=95">
 <link rel="icon" href="/favicon.ico?v=97" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=97"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=97">
-<link rel="stylesheet" href="/portal-fonts.css?v=102"><link rel="stylesheet" href="/material-library.css?v=108"><script defer src="/portal-fonts.js?v=102"></script>
+<link rel="stylesheet" href="/portal-fonts.css?v=102"><link rel="stylesheet" href="/material-library.css?v=109"><script defer src="/portal-fonts.js?v=102"></script>
 <link rel="stylesheet" href="/portal-appearance.css?v=102"><script defer src="/portal-appearance.js?v=102"></script>
 <link rel="stylesheet" href="/portal-tour.css?v=99"><script defer src="/portal-tour.js?v=99"></script>
 <link rel="stylesheet" href="/portal-room.css?v=108">
@@ -364,7 +364,7 @@ body:has(#roomView.active){overflow:hidden}
 
   <section id="roomView" class="view">
     <div class="room"><button type="button" class="panel-toggle panel-toggle-right" data-panel-toggle="right" aria-label="Згорнути інструменти" aria-expanded="true">›</button>
-      <header class="room-head"><div class="room-title"><button type="button" data-action="portal" class="room-home" title="На головну порталу" data-ui-title="На головну порталу"><span class="brand-mark home-mark"><img id="roomCover" alt="Обкладинка пригоди" hidden><span class="cover-fallback" id="roomCoverFallback">☼</span></span><strong id="gameTitle">Північний архів</strong></button><button class="mono room-id" type="button" data-action="copy-room-code" title="Скопіювати код кімнати" data-ui-title="Скопіювати код кімнати"><span data-ui-text="КІМНАТА">КІМНАТА</span> <b id="roomCodeLabel">CTH-1926</b></button></div><div class="room-controls"><button class="btn room-map-button" data-action="open-room-map" data-ui-title="Карта кімнати" title="Карта кімнати"><span data-ui-text="Карта">Карта</span></button><button class="icon-btn" data-action="settings" aria-label="Налаштування сайту" data-ui-aria-label="Налаштування сайту">⚙</button></div></header>
+      <header class="room-head"><div class="room-title"><button type="button" data-action="portal" class="room-home" title="На головну порталу" data-ui-title="На головну порталу"><span class="brand-mark home-mark"><img id="roomCover" alt="Обкладинка пригоди" hidden><span class="cover-fallback" id="roomCoverFallback">☼</span></span><strong id="gameTitle">Північний архів</strong></button><button class="mono room-id" type="button" data-action="copy-room-code" title="Скопіювати код кімнати" data-ui-title="Скопіювати код кімнати"><span data-ui-text="КІМНАТА">КІМНАТА</span> <b id="roomCodeLabel">CTH-1926</b></button></div><div class="room-controls"><button class="icon-btn" data-action="settings" aria-label="Налаштування сайту" data-ui-aria-label="Налаштування сайту">⚙</button></div></header>
       <aside class="roster" aria-label="Учасники" data-ui-aria-label="Учасники"><div class="roster-label"><span data-ui-text="Ведучий">Ведучий</span></div><div class="person"><button class="avatar" type="button">В</button><span id="keeperName">Віталій<span class="role">Ведучий</span></span><i class="status" id="keeperStatus" title="Офлайн"></i></div><div class="roster-label"><span data-ui-text="Гравці">Гравці</span> · <span id="playerCount">3</span> <button class="chat-target keeper-only" data-action="add-player"><span data-ui-text="Код для гравців">Код для гравців</span></button></div><div id="playersList"></div><section class="keeper-roll-history" id="keeperRollPanel"><div id="keeperRollLog" class="hidden-roll-log" aria-label="Приховані кидки"></div></section></aside>
       <section class="stage library-stage" aria-label="Матеріали гри"><div id="structuredMaterialsMount" style="height:100%"></div><div hidden id="legacyStage">
         <div class="stage-top"><div class="stage-controls"><button data-action="zoom-out" title="Віддалити">−</button><button data-action="zoom-in" title="Наблизити">+</button><button data-action="fit-map" title="За розміром">□</button><label class="upload-label" for="uploadInput" title="Додати картку на сцену">＋</label></div></div>
@@ -394,9 +394,9 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
 <script src="/migration-client.js?v=100"></script>
 <script src="/portal-rules.js?v=52"></script>
 <script src="/portal-localization.js?v=108"></script>
-<script src="/room-extras.js?v=108"></script>
-<script src="/material-image-viewer.js?v=108"></script>
-<script src="/material-library.js?v=108"></script>
+<script src="/room-extras.js?v=109"></script>
+<script src="/material-image-viewer.js?v=109"></script>
+<script src="/material-library.js?v=109"></script>
 <script src="/audio-timeline.js?v=108"></script>
 <script>
 (()=>{
@@ -413,7 +413,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   let activeGame=state.games.find(g=>g.id===state.gameId)||state.games[0];state.gameId=activeGame.id;state.scenes=activeGame.scenes||legacyScenes;state.clues=activeGame.clues||legacyClues;state.code=activeGame.code||state.code;
   let directCursor=0,directGeneration=0,privateView='';
   const modal=$('#modal');
-  const structuredMaterials=window.createRoomMaterialLibrary({mount:$('#structuredMaterialsMount'),onError:message=>toast(message),isActive:()=>$('#roomView').classList.contains('active'),onCount:count=>{$('#clueCount').textContent=count;}});
+  const structuredMaterials=window.createRoomMaterialLibrary({mount:$('#structuredMaterialsMount'),onOpenMap:()=>roomExtras.openMap(),onError:message=>toast(message),isActive:()=>$('#roomView').classList.contains('active'),onCount:count=>{$('#clueCount').textContent=count;}});
   let interfaceLanguage=localStorage.getItem('cth-interface-language')||'uk';
   if(!['uk','ru','en'].includes(interfaceLanguage))interfaceLanguage='uk';
   const locale=window.cthLocale;
@@ -782,7 +782,7 @@ document.addEventListener('submit',e=>{if(e.target?.id==='joinForm'&&!window.__c
   }
   const portalRules=createPortalRules({modal,openModal,supabase,escape:esc});
   function activeRoomKey(){return 'cth-active-room:'+state.userId}
-  function show(view){$$('.view').forEach(v=>v.classList.remove('active'));$('#'+view+'View').classList.add('active');window.scrollTo(0,0);if(view==='room'){$('#roomView').dataset.tourUser=state.userId||'';$('#roomView').dataset.tourRole=state.role;if(!adminEmbedded)window.portalTour?.enter({userId:state.userId,role:state.role});if(state.userId&&state.gameId)sessionStorage.setItem(activeRoomKey(),state.gameId);restoreChatDrafts();scrollChats();resumeRoom()}if(state.roomSub)void updatePresence(true)}
+  function show(view){if(view!=='room')window.closeMaterialImage?.();$$('.view').forEach(v=>v.classList.remove('active'));$('#'+view+'View').classList.add('active');window.scrollTo(0,0);if(view==='room'){$('#roomView').dataset.tourUser=state.userId||'';$('#roomView').dataset.tourRole=state.role;if(!adminEmbedded)window.portalTour?.enter({userId:state.userId,role:state.role});if(state.userId&&state.gameId)sessionStorage.setItem(activeRoomKey(),state.gameId);restoreChatDrafts();scrollChats();resumeRoom()}if(state.roomSub)void updatePresence(true)}
   function toast(msg){const t=$('#toast');t.textContent=uiText(msg);t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
   function applyTheme(value){
     const selector=$('#entryThemeSelect');

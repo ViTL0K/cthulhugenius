@@ -19,8 +19,8 @@
    try{const rows=await rpc('get_room_profiles',{target_game:game});if(state.gameId!==game||state.userId!==user)return;for(const row of rows||[])onPortrait(row);}catch{profilesAt=0;}finally{busy=false;}
   }
   async function openMap(){
-   const game=state.gameId;if(!game)return;
-   try{const map=await rpc('get_room_map',{target_game:game});if(state.gameId!==game)return;if(map?.image)await window.openMaterialImage({src:map.image,title:map.title||t('Карта')});else if(state.role==='keeper')await editMap();else toast(t('Ведучий ще не додав карту.'));}catch(error){toast(error.message);}
+   const game=state.gameId,user=state.userId;if(!game)return;
+   try{const map=await rpc('get_room_map',{target_game:game});if(state.gameId!==game||state.userId!==user||!isActive())return;if(map?.image)await window.openMaterialImage({src:map.image,title:map.title||t('Карта'),container:document.querySelector('#roomView .library-stage')});else if(state.role==='keeper')await editMap();else toast(t('Ведучий ще не додав карту.'));}catch(error){toast(error.message);}
   }
   async function editMap(){
    if(state.role!=='keeper'||!state.gameId)return;const game=state.gameId,user=state.userId;

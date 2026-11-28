@@ -2,10 +2,11 @@
 (()=>{
  let active=null;
  window.closeMaterialImage=()=>active?.close();
- window.openMaterialImage=async({src,title=''})=>{
+ window.openMaterialImage=async({src,title='',container=null})=>{
   active?.close();
   const make=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
-  const viewer=make('dialog',undefined,'material-image-viewer');active=viewer;
+  const viewer=make(container?'section':'dialog',undefined,'material-image-viewer');active=viewer;
+  const previousFocus=document.activeElement;if(container){viewer.classList.add('material-image-embedded');viewer.setAttribute('role','region');viewer.tabIndex=-1;viewer.open=true;viewer.close=()=>{if(!viewer.open)return;viewer.open=false;cleanup();};}
   viewer.setAttribute('aria-label',title?'Зображення: '+title:'Перегляд зображення');
   const toolbar=make('header',undefined,'material-image-toolbar'),name=make('strong',title),tools=make('div',undefined,'material-image-controls');
   const control=(label,action,text=label)=>{const button=make('button',text,'btn');button.type='button';button.setAttribute('aria-label',label);button.addEventListener('click',action);return button;};
@@ -32,9 +33,9 @@
   const minus=control('Зменшити',()=>zoom(scale/1.25),'−'),plus=control('Збільшити',()=>zoom(scale*1.25),'+');
   const fitButton=control('Вписати зображення',fit,'Вписати'),original=control('Масштаб 100%',()=>zoom(1),'100%');
   const full=control('Повний екран',async()=>{try{if(document.fullscreenElement===viewer)await document.exitFullscreen?.();else await viewer.requestFullscreen?.();}catch{message.textContent='Повноекранний режим браузера недоступний.';}} ,'⛶');
-  full.hidden=typeof viewer.requestFullscreen!=='function';
+  full.hidden=!!container||typeof viewer.requestFullscreen!=='function';
   const close=control('Закрити зображення',()=>viewer.close(),'×');close.classList.add('material-image-close');
-  tools.append(minus,amount,plus,slider,fitButton,original,full,close);toolbar.append(name,tools);surface.append(picture);viewport.append(surface);viewer.append(toolbar,viewport,message);document.body.append(viewer);viewer.showModal();
+  tools.append(minus,amount,plus,slider,fitButton,original,full,close);toolbar.append(name,tools);surface.append(picture);viewport.append(surface);viewer.append(toolbar,viewport,message);(container||document.body).append(viewer);if(!container)viewer.showModal();viewer.focus();
   slider.addEventListener('input',()=>zoom(Number(slider.value)/100));
   viewport.addEventListener('wheel',event=>{if(!naturalWidth)return;event.preventDefault();zoom(scale*Math.exp(-Math.max(-200,Math.min(200,event.deltaY))*.002),{x:event.clientX,y:event.clientY});},{passive:false});
   viewport.addEventListener('pointerdown',event=>{if(event.button!==0||!naturalWidth)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};viewport.setPointerCapture?.(event.pointerId);viewport.classList.add('dragging');});
@@ -42,7 +43,9 @@
   for(const event of ['pointerup','pointercancel','lostpointercapture'])viewport.addEventListener(event,()=>{drag=null;viewport.classList.remove('dragging');});
   viewer.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();viewer.close();}else if(event.key==='+'||event.key==='='){event.preventDefault();zoom(scale*1.25);}else if(event.key==='-'){event.preventDefault();zoom(scale/1.25);}else if(event.key==='0'){event.preventDefault();fit();}});
   const resize=()=>{if(fitMode)fit();else zoom(scale);};window.addEventListener?.('resize',resize);
-  viewer.addEventListener('close',()=>{window.removeEventListener?.('resize',resize);if(document.fullscreenElement===viewer)void document.exitFullscreen?.().catch(()=>{});viewer.remove();if(active===viewer)active=null;});
+  const observer=typeof ResizeObserver==='function'?new ResizeObserver(resize):null;observer?.observe(viewport);
+  function cleanup(){window.removeEventListener?.('resize',resize);observer?.disconnect();if(document.fullscreenElement===viewer)void document.exitFullscreen?.().catch(()=>{});viewer.remove();if(active===viewer)active=null;if(previousFocus?.isConnected)previousFocus.focus();}
+  viewer.addEventListener('close',cleanup);
   try{
    const source=new Image();source.src=src;await source.decode();
    if(active!==viewer||!viewer.open)return viewer;
